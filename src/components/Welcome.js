@@ -3,7 +3,6 @@ import React from 'react';
 const Welcome = () => {
   return (
     <div className='welcome'>
-      <h1>Welcome to Co-Writer</h1>
       <p>Type in a word, and the next word in the sentence will be generated from the selected source material.</p>
       <p>You can append new words without typing by clicking <b>generate</b>.</p>
       <p>If you don't like a word, click it to generate a new one.</p>

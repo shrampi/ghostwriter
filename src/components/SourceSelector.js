@@ -1,20 +1,16 @@
 import React from 'react';
-import Dropdown from 'react-bootstrap/Dropdown';
-import DropdownButton from 'react-bootstrap/DropdownButton';
-import Col from 'react-bootstrap/Col';
-import Row from 'react-bootstrap/Row';
 
-const SourceSelector = ({ source }) => {
+const SourceSelector = ({ sources, onChange }) => {
   return (
-    <div>
-      <Row>
-        <Col>Select source material:</Col>
-        <Col>
-          <DropdownButton title="select source">
-            <Dropdown.Item>Shakespeare's Complete Works</Dropdown.Item>
-          </DropdownButton>
-        </Col>
-      </Row>
+    <div style={{padding: '10px'}}>
+        <div style={{float: 'left'}}>
+          Now co-writing with: 
+        </div>
+        <select onChange={onChange}>
+          {sources.map((option, index) => (
+            <option key={index}>{option}</option>
+          ))}
+        </select>
     </div>
   );
 };
