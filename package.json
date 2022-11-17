@@ -1,7 +1,7 @@
 {
   "name": "cowriter",
   "version": "0.0.1",
-  "description": "biased text suggestion",
+  "description": "biased text suggestion", 
   "scripts": {
     "build": "webpack --mode=production",
     "start": "webpack serve --mode=development"

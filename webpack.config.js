@@ -9,7 +9,10 @@ const config = {
   devServer: {
     static: path.resolve(__dirname, 'build'),
     compress: true,
-    port: 3000
+    port: 3000,
+    proxy: {
+      '/api': 'https://www.gutenberg.org/cache/epub/100/pg100.txt'
+    }
   },
   devtool: 'source-map',
   module: {

@@ -6,9 +6,6 @@ import SourceSelector from './components/SourceSelector';
 import WritingForm from './components/WritingForm';
 import SentenceDisplay from './components/SentenceDisplay';
 import SuccessorPreview from './components/SuccessorPreview';
-import { getBook } from './services/bookService';
-
-getBook();
 
 const App = () => {
   const [welcomeVisible, setWelcomeVisible] = useState(false);
@@ -52,6 +49,7 @@ const App = () => {
   };
 
   // TODO: catch when multiple spaces are used between words, or punctuation, etc.
+  // NOTE: this can be the same as what we use to parse resource text
   const parseArrayFromText = (text) => {
     return text.split(" ");
   }

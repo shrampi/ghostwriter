@@ -1,6 +1,6 @@
 import axios from 'axios';
 
 export const getBook = () => {
-  axios.get('https://www.gutenberg.org/cache/epub/100/')
+  axios.get('/api')
     .then((response) => console.log(response));
 }
