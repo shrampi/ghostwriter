@@ -1,5 +1,6 @@
+const CHARS_TO_REMOVE = /\d+\.|[@#$%^&*()\[\]{}=+\\\/`~<>"\d_\u007B-\uFFFF]+/gu;
 const CHARS_TO_TOKENIZE = /([.,:;!?]+)/g;
-const CHARS_TO_REMOVE = /[@#$%^&*()\[\]{}=+\\\/`~<>"\d_\u007B-\uFFFF]+/gu;
+
 
 /**
  * Removes header/footer content from Gutenberg book texts. Both header and footer start and end with '***'
@@ -144,29 +145,4 @@ const generateSuccessorTable = (text) => {
   return table;
 }
 
-const shakespeare = require('../resources/shakespeare');
-// const middlemarch = require('../resources/middlemarch');
-// const wonderland = require('../resources/wonderland');
-
-
-const shakespeareTable = generateSuccessorTable(shakespeare);
-// const middlemarchTable = generateSuccessorTable(middlemarch, charsToRemove, charsToTokenize);
-// const wonderlandTable = generateSuccessorTable(wonderland, charsToRemove, charsToTokenize);
-
-let sentence = '';
-let prev = '.'
-let words = [];
-for (let i = 0; i < 100; i += 1) {
-  let word = shakespeareTable.getSuccessor(prev);
-  if (!word) {
-    break;
-  }
-  sentence += word + ' ';
-  words.push(word);
-  prev = word;
-}
-
-console.log('\n============');
-console.log('From Shakespeare:')
-console.log(sentence);
-console.log('\n============');
+module.exports = { generateSuccessorTable, parseTokensFromText }
