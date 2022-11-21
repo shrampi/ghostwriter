@@ -1,7 +1,6 @@
 const CHARS_TO_REMOVE = /\d+\.|[@#$%^&*()\[\]{}=+\\\/`~<>"\d_\u007B-\uFFFF]+/gu;
 const CHARS_TO_TOKENIZE = /([.,:;!?]+)/g;
 
-
 /**
  * Removes header/footer content from Gutenberg book texts. Both header and footer start and end with '***'
  * TODO: need to make sure this is standard across books.
@@ -106,43 +105,43 @@ const generateSuccessorTable = (text) => {
   const tokens = parseTokensFromText(headerlessText);
   const table = generateTableFromTokens(tokens);
 
-  table.getSuccessor = (word, weighted = true, exclude = []) => {
-    if (!(word in table)) {
-      return null;
-    }
-
-    const weights = getAccumulatedWeights(table[word].weights);
-
-    const successors = table[word].successors.map((s, index) => {
-      if (exclude.includes(s)) {
-        weights.splice(index);
-      }
-      else {
-        return s;
-      }
-
-    })
-
-    if (successors.length === 0) {
-      return null;
-    }
-
-    if (!weighted) {
-      const r = Math.floor(Math.random() * successors.length);
-      return successors[r];
-    }
-
-    const totalSuccessors = weights[weights.length - 1];
-    const randy = Math.floor(Math.random() * totalSuccessors);
-
-    for (let i = 0; i < weights.length; i += 1) {
-      if (weights[i] > randy) {
-        return successors[i];
-      }
-    }
-  }
-
   return table;
 }
 
-module.exports = { generateSuccessorTable, parseTokensFromText }
+const getSuccessorOf = (word, table, exclude=[], weighted=true) => {
+  if (!(word in table)) {
+    return null;
+  }
+
+  const weights = getAccumulatedWeights(table[word].weights);
+
+  const successors = table[word].successors.map((s, index) => {
+    if (exclude.includes(s)) {
+      weights.splice(index);
+    }
+    else {
+      return s;
+    }
+
+  })
+
+  if (successors.length === 0) {
+    return null;
+  }
+
+  if (!weighted) {
+    const r = Math.floor(Math.random() * successors.length);
+    return successors[r];
+  }
+
+  const totalSuccessors = weights[weights.length - 1];
+  const randy = Math.floor(Math.random() * totalSuccessors);
+
+  for (let i = 0; i < weights.length; i += 1) {
+    if (weights[i] > randy) {
+      return successors[i];
+    }
+  }
+}
+
+module.exports = { generateSuccessorTable, parseTokensFromText, getSuccessorOf }
