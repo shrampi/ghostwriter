@@ -108,6 +108,17 @@ const generateSuccessorTable = (text) => {
   return table;
 }
 
+/**
+ * Retrieves a successor of word from the given successor table, or null if no successor is found. 
+ * Any words in the exclude array will not be retrieved.
+ * The successor is randomly selected from a weighted distribution, or is completely random if weighted=false. 
+ * 
+ * @param {String} word 
+ * @param {Object} table 
+ * @param {Array} exclude 
+ * @param {Boolean} weighted 
+ * @returns The chosen successor as a String. 
+ */
 const getSuccessorOf = (word, table, exclude=[], weighted=true) => {
   if (!(word in table)) {
     return null;

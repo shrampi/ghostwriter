@@ -6,6 +6,8 @@ import SourceSelector from './components/SourceSelector';
 import WritingForm from './components/WritingForm';
 import SentenceDisplay from './components/SentenceDisplay';
 import SuccessorPreview from './components/SuccessorPreview';
+import OptionsMenu from './components/OptionsMenu';
+import CheckboxInput from './components/CheckboxInput';
 
 const App = () => {
   const [welcomeVisible, setWelcomeVisible] = useState(false);
@@ -17,6 +19,10 @@ const App = () => {
     'test',
     'sentence',
   ]);
+
+  const [showPreview, setShowPreview] = useState(false);
+  const [uniqueSuccessor, setUniqueSuccessor] = useState(false);
+  const [weightedSuccessor, setWeightedSuccessor] = useState(true);
 
   //TODO: get successor from actual source data
   //NOTE: could you accept multiple words? Look at all the words and see if they share any successors, if they do, add those to last word's successor weights.
@@ -88,6 +94,7 @@ const App = () => {
       {/* TODO: <Header /> */}
       <h1>Co-Writer</h1>
       {welcomeVisible && <Welcome />}
+      {/* <Hint text='' /> */}
       <SentenceDisplay
         sentence={sentenceArray}
         onWordClick={handleWordClick}
@@ -102,10 +109,12 @@ const App = () => {
         sources={sourceData.map((s) => s.name)}
         onChange={handleSourceSelection}
       />
-      <SuccessorPreview
-        previewWord={tentativeSuccessor}
-        onCheckboxChange={handlePreviewCheckboxChange}
-      />
+      {showPreview && <SuccessorPreview previewWord={tentativeSuccessor}/>}
+      <OptionsMenu>
+        <CheckboxInput label={'Show preview of co-writer\'s suggestion:'} value={showPreview} onChange={() => setShowPreview(!showPreview)} />
+        <CheckboxInput label={'Only suggest unique words:'} value={uniqueSuccessor} onChange={() => setUniqueSuccessor(!uniqueSuccessor)} />
+        <CheckboxInput label={'Use weighted suggestions:'} value={weightedSuccessor} onChange={() => setWeightedSuccessor(!weightedSuccessor)} />
+      </OptionsMenu>
 
       {/* TODO: <Footer/> */}
     </div>

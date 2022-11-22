@@ -1,25 +1,16 @@
-import React from 'react';
-import { useState } from 'react';
+import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 
-const SuccessorPreview = ({ onCheckboxChange, previewWord }) => {
-  const [isChecked, setIsChecked] = useState(false);
-
-  const handleCheckbox = () => {
-    onCheckboxChange(!isChecked);
-    setIsChecked(!isChecked);
-  };
-
+const SuccessorPreview = ({ previewWord }) => {
   return (
     <div>
-      Preview co-writer's addition: 
-      <input
-        type="checkbox"
-        onChange={handleCheckbox}
-        checked={isChecked}
-      />
-      {isChecked && <div>{`Co-writer will add ${previewWord}`}</div>}
+      {`Co-writer will add ${previewWord}`}
     </div>
   );
 };
+
+SuccessorPreview.propTypes = {
+  previewWord: PropTypes.string
+}
 
 export default SuccessorPreview;
