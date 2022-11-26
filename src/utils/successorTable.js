@@ -1,6 +1,3 @@
-const CHARS_TO_REMOVE = /\d+\.|[@#$%^&*()\[\]{}=+\\\/`~<>"\d_\u007B-\uFFFF]+/gu;
-const CHARS_TO_TOKENIZE = /([.,:;!?]+)/g;
-
 /**
  * Removes header/footer content from Gutenberg book texts. Both header and footer start and end with '***'
  * TODO: need to make sure this is standard across books.
@@ -28,13 +25,22 @@ const removeGutenbergHeaderAndFooter = (text) => {
  * @param {RegExp} charsToRemove Characters to be removed from the text.
  * @returns
  */
-const parseTokensFromText = (text, charsToRemove = CHARS_TO_REMOVE, specialCharsToTokenize = CHARS_TO_TOKENIZE) => {
-  const removedInvalids = text.replace(charsToRemove, '');
-  const spaced = removedInvalids.replace(specialCharsToTokenize, ' $1 ');
-  const removedWhitespace = spaced.replace(/\s+/g, ' ');
-  const trimEnd = removedWhitespace.trim().toLowerCase();
+const parseTokensFromText = (
+  text,
+  charsToRemove = /[^A-Za-z\s.,!?']+|[A-Z]{2,}\.*/g,
+) => {
 
-  return trimEnd.split(' ');
+  let relicOfSin = /\d:\d|[A-Z]{2,}\.*|\d+\.|[:;@#$%^&*()\[\]{}=+\\\/`~<>"\d_\u007B-\uFFFF]+/gu;
+
+  let result = text.replace(charsToRemove, '');  
+  result = result.replace(/([.,!?]+)/g, ' $1 ');
+  result = result.replace(/[\s]+/g, ' ');
+  result = result.trim();
+
+  if (!result) {
+    return [];
+  }
+  return result.split(' ');
 };
 
 /**
@@ -62,7 +68,7 @@ const addSuccessorToTable = (table, key, successor) => {
  * @param {RegExp} charsToExcludeAsSuccessors 
  * @returns 
  */
-const generateTableFromTokens = (tokens, charsToExcludeAsSuccessors = CHARS_TO_TOKENIZE) => {
+const generateTableFromTokens = (tokens, charsToExcludeAsSuccessors = /[.,!?]+/g) => {
   let result = {};
   for (let i = 0; i < tokens.length - 1; i += 1) {
     let current = tokens[i];
@@ -119,13 +125,14 @@ const generateSuccessorTable = (text) => {
  * @param {Boolean} weighted 
  * @returns The chosen successor as a String. 
  */
-const getSuccessorOf = (word, table, exclude=[], weighted=true) => {
+const getSuccessorOf = (word, table, exclude = [], weighted = true) => {
   if (!(word in table)) {
     return null;
   }
 
   const weights = getAccumulatedWeights(table[word].weights);
 
+  // FIXME:
   const successors = table[word].successors.map((s, index) => {
     if (exclude.includes(s)) {
       weights.splice(index);
@@ -155,4 +162,41 @@ const getSuccessorOf = (word, table, exclude=[], weighted=true) => {
   }
 }
 
-module.exports = { generateSuccessorTable, parseTokensFromText, getSuccessorOf }
+// const addTextToInitialSources = (name, pathToText) => {
+//   const fs = require('fs');
+
+//   const text = fs.readFileSync(pathToText, {encoding:'utf8', flag:'r'});
+//   const sources = require('../../initialSources.json');
+//   const table = generateSuccessorTable(text);
+
+//   const newSource = {
+//     name,
+//     table
+//   }
+//   console.log('Finished creating new source from text file: ', newSource.name);
+
+//   let sourceExists = false;
+//   const newSources = sources.map(source => {
+//     if (source.name === newSource.name) {
+//       console.log('Updating existing source: ', source.name);
+//       sourceExists = true;
+//       return newSource;
+//     }
+//     return source;
+//   });
+
+//   if (!sourceExists) {
+//     console.log('Adding source to initialSources: ', newSource.name);
+//     newSources.push(newSource);
+//   }
+
+//   const newSourcesJSON = JSON.stringify(newSources);
+//   console.log('Writing to file...');
+//   fs.writeFileSync('initialSources.json', newSourcesJSON);
+//   console.log('Finished')
+// }
+
+// addTextToInitialSources("Paradise Lost", 'text.txt');
+
+export { parseTokensFromText, getSuccessorOf, generateSuccessorTable };
+

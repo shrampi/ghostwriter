@@ -1,92 +1,92 @@
 import React from 'react';
-import { useState } from 'react';
-import sourceData from './sourceData';
+import { useState, useEffect } from 'react';
 import Welcome from './components/Welcome';
 import SourceSelector from './components/SourceSelector';
 import WritingForm from './components/WritingForm';
 import SentenceDisplay from './components/SentenceDisplay';
-import SuccessorPreview from './components/SuccessorPreview';
 import OptionsMenu from './components/OptionsMenu';
 import CheckboxInput from './components/CheckboxInput';
+import initialSources from '../initialSources.json';
+import { getSuccessorOf, parseTokensFromText } from './utils/successorTable';
 
 const App = () => {
   const [welcomeVisible, setWelcomeVisible] = useState(false);
-  const [source, setSource] = useState('shakespeare');
-  const [sentenceArray, setSentenceArray] = useState([
-    'this',
-    'is',
-    'a',
-    'test',
-    'sentence',
-  ]);
-
-  const [showPreview, setShowPreview] = useState(false);
+  const [sources, setSources] = useState(initialSources);
+  const [source, setSource] = useState();
+  const [sentenceArray, setSentenceArray] = useState([]);
+  const [showPreview, setShowPreview] = useState(true);
   const [uniqueSuccessor, setUniqueSuccessor] = useState(false);
-  const [weightedSuccessor, setWeightedSuccessor] = useState(true);
+  const [weightedSuccessor, setWeightedSuccessor] = useState(false);
+  const [writingInput, setWritingInput] = useState('');
+  const [tentativeSuccessor, setTentativeSuccessor] = useState('');
 
-  //TODO: get successor from actual source data
-  //NOTE: could you accept multiple words? Look at all the words and see if they share any successors, if they do, add those to last word's successor weights.
-  const generateSuccessorFrom = (word) => {
-    switch(word.length){
-      case 1:
-        return 'one';
-      case 2:
-        return 'two';
-      default:
-        return 'dingo';
-    }
+  const initializeSourceData = () => {
+    const defaultSource = initialSources[0];
+    setSource(defaultSource);
+    setTentativeSuccessor(getSuccessorOf('.', defaultSource.table));
   }
 
-  const [writingInput, setWritingInput] = useState('');
-  const [tentativeSuccessor, setTentativeSuccessor] = useState(generateSuccessorFrom(writingInput));
+  useEffect(initializeSourceData, []);
+
+  const nextWord = (word) => {
+    const exclude = uniqueSuccessor ? sentenceArray : [];
+    return getSuccessorOf(word, source.table, exclude, weightedSuccessor);
+  }
+
+  const updateTentativeSuccessor = (inputTokens) => {
+    let predecessor = ".";
+    if (inputTokens && inputTokens.length) {
+      predecessor = inputTokens[inputTokens.length - 1];
+    }
+    else if (sentenceArray.length) {
+      predecessor = sentenceArray[sentenceArray.length - 1];
+    }
+    setTentativeSuccessor(nextWord(predecessor));
+  }
 
   const handleSourceSelection = (event) => {
     if (welcomeVisible) {
       setWelcomeVisible(false);
     }
     setSource(event.target.value);
+    updateTentativeSuccessor(parseTokensFromText(writingInput));
     console.log('source changed to', event.target.value);
   };
 
   const handleWritingChange = (event) => {
-    const word = event.target.value;
-    setWritingInput(word);
-    setTentativeSuccessor(generateSuccessorFrom(word));
+    const input = event.target.value;
+    const inputTokens = parseTokensFromText(input)
+    setWritingInput(input);
+    updateTentativeSuccessor(inputTokens);
   };
 
-  // TODO: catch when multiple spaces are used between words, or punctuation, etc.
-  // NOTE: this can be the same as what we use to parse resource text
-  const parseArrayFromText = (text) => {
-    return text.split(" ");
-  }
+  const handleWritingSubmit = (event) => {
+    event.preventDefault();
+    console.log('submitted: ', writingInput);
+    console.log('successor: ', tentativeSuccessor);
 
-  const addWordsToSentenceArray = (words) => {
-    const newSentence = sentenceArray;
-    words.map((word) => {
-      if (word) {
-        newSentence.push(word);
-      }
-    });
+    const tokens = parseTokensFromText(writingInput);
+    const newSentence = sentenceArray.concat(tokens);
+    if (tentativeSuccessor) {
+      newSentence.push(tentativeSuccessor);
+    }
 
     setSentenceArray(newSentence);
-  };
-
-  const handleWordSubmit = (event) => {
-    console.log('submitted');
-    event.preventDefault();
-    const newWords = parseArrayFromText(writingInput); 
-    addWordsToSentenceArray([...newWords, tentativeSuccessor]);
+    updateTentativeSuccessor([]);
     setWritingInput('');
-    setTentativeSuccessor(generateSuccessorFrom(tentativeSuccessor));
   };
 
-  const handlePreviewCheckboxChange = (checked) => {
-    console.log('preview changed to', checked);
-  };
-
-  //TODO:
   const handleWordClick = (wordIndex) => {
-    console.log('word clicked at', wordIndex);
+    let predecessor;
+    if (wordIndex) {
+      predecessor = sentenceArray[wordIndex - 1];
+    } 
+    else {
+      predecessor = '.';
+    }
+    const updatedSentence = [...sentenceArray];
+    updatedSentence[wordIndex] = nextWord(predecessor);
+    setSentenceArray(updatedSentence);
   };
 
   return (
@@ -96,20 +96,23 @@ const App = () => {
       {welcomeVisible && <Welcome />}
       {/* <Hint text='' /> */}
       <SentenceDisplay
-        sentence={sentenceArray}
+        sentenceArray={sentenceArray}
+        writingInput={writingInput}
+        successor={tentativeSuccessor}
+        showPreview={showPreview}
         onWordClick={handleWordClick}
+        onSuccessorClick={() => updateTentativeSuccessor()}
       />
       <WritingForm
         style={{ float: 'none' }}
-        onSubmit={handleWordSubmit}
+        onSubmit={handleWritingSubmit}
         onChange={handleWritingChange}
         value={writingInput}
       />
       <SourceSelector
-        sources={sourceData.map((s) => s.name)}
+        sources={sources.map((s) => s.name)}
         onChange={handleSourceSelection}
       />
-      {showPreview && <SuccessorPreview previewWord={tentativeSuccessor}/>}
       <OptionsMenu>
         <CheckboxInput label={'Show preview of co-writer\'s suggestion:'} value={showPreview} onChange={() => setShowPreview(!showPreview)} />
         <CheckboxInput label={'Only suggest unique words:'} value={uniqueSuccessor} onChange={() => setUniqueSuccessor(!uniqueSuccessor)} />
