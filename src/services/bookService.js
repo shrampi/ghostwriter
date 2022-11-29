@@ -1,6 +1,13 @@
 import axios from 'axios';
 
-export const getBook = () => {
-  axios.get('/api')
-    .then((response) => console.log(response));
+const baseURL = 'https://www.gutenberg.org';
+
+const getBook = (id) => {
+  console.log('getting book...');
+  const bookURL = `${baseURL}/cache/epub/${id}/pg${id}.txt`
+  axios.get(bookURL)
+    .then((response) => console.log(response.data.length))
+    .catch((response) => console.log('error getting book'));
 }
+
+export default { getBook };

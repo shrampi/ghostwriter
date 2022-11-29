@@ -32,6 +32,10 @@ const parseTokensFromText = (
 
   let relicOfSin = /\d:\d|[A-Z]{2,}\.*|\d+\.|[:;@#$%^&*()\[\]{}=+\\\/`~<>"\d_\u007B-\uFFFF]+/gu;
 
+  if (!text) {
+    return [];
+  }
+
   let result = text.replace(charsToRemove, '');  
   result = result.replace(/([.,!?]+)/g, ' $1 ');
   result = result.replace(/[\s]+/g, ' ');

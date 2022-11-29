@@ -1,13 +1,17 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
+import bookService from './services/bookService';
+import { getSuccessorOf, parseTokensFromText } from './utils/successorTable';
+import initialSources from '../initialSources.json';
+
 import Welcome from './components/Welcome';
 import SourceSelector from './components/SourceSelector';
 import WritingForm from './components/WritingForm';
 import SentenceDisplay from './components/SentenceDisplay';
 import OptionsMenu from './components/OptionsMenu';
 import CheckboxInput from './components/CheckboxInput';
-import initialSources from '../initialSources.json';
-import { getSuccessorOf, parseTokensFromText } from './utils/successorTable';
+
+
 
 const App = () => {
   const [welcomeVisible, setWelcomeVisible] = useState(false);
@@ -16,7 +20,7 @@ const App = () => {
   const [sentenceArray, setSentenceArray] = useState([]);
   const [showPreview, setShowPreview] = useState(true);
   const [uniqueSuccessor, setUniqueSuccessor] = useState(false);
-  const [weightedSuccessor, setWeightedSuccessor] = useState(false);
+  const [weightedSuccessor, setWeightedSuccessor] = useState(true);
   const [writingInput, setWritingInput] = useState('');
   const [tentativeSuccessor, setTentativeSuccessor] = useState('');
 
@@ -28,14 +32,34 @@ const App = () => {
 
   useEffect(initializeSourceData, []);
 
+  const testLoadBook = () => {
+    bookService.getBook(11);
+  }
+
+  useEffect(testLoadBook, []);
+
+  /**
+   * Returns a successor of the word using the App state's source material. 
+   * 
+   * @param {String} word 
+   * @returns The successor word as a String.
+   */
   const nextWord = (word) => {
     const exclude = uniqueSuccessor ? sentenceArray : [];
     return getSuccessorOf(word, source.table, exclude, weightedSuccessor);
   }
 
-  const updateTentativeSuccessor = (inputTokens) => {
-    let predecessor = ".";
-    if (inputTokens && inputTokens.length) {
+  /**
+   * Update's the state's tentative successor, which is displayed alongside the constructed sentence.
+   * Upon submitting a word, the tentative successor is added to the sentence.
+   * 
+   * @param {String} input A String which the successor is determined from. If no input is provided, the
+   * function will use the state's sentenceArray. 
+   */
+  const updateTentativeSuccessor = (input) => {
+    const inputTokens = parseTokensFromText(input);
+    let predecessor = '.';
+    if (inputTokens.length) {
       predecessor = inputTokens[inputTokens.length - 1];
     }
     else if (sentenceArray.length) {
@@ -44,35 +68,36 @@ const App = () => {
     setTentativeSuccessor(nextWord(predecessor));
   }
 
-  const handleSourceSelection = (event) => {
+  const hideWelcomeText = () => {
     if (welcomeVisible) {
       setWelcomeVisible(false);
     }
+  }
+
+  const handleSourceSelection = (event) => {
+    hideWelcomeText();
     setSource(event.target.value);
-    updateTentativeSuccessor(parseTokensFromText(writingInput));
+    updateTentativeSuccessor();
     console.log('source changed to', event.target.value);
   };
 
   const handleWritingChange = (event) => {
+    hideWelcomeText();
     const input = event.target.value;
-    const inputTokens = parseTokensFromText(input)
     setWritingInput(input);
-    updateTentativeSuccessor(inputTokens);
+    updateTentativeSuccessor(input);
   };
 
   const handleWritingSubmit = (event) => {
     event.preventDefault();
-    console.log('submitted: ', writingInput);
-    console.log('successor: ', tentativeSuccessor);
-
+    hideWelcomeText();
     const tokens = parseTokensFromText(writingInput);
     const newSentence = sentenceArray.concat(tokens);
     if (tentativeSuccessor) {
       newSentence.push(tentativeSuccessor);
     }
-
     setSentenceArray(newSentence);
-    updateTentativeSuccessor([]);
+    updateTentativeSuccessor();
     setWritingInput('');
   };
 
