@@ -1,13 +1,14 @@
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 const path = require('path');
 
 const config = {
-  entry: './src/index.js',
+  entry: './client/index.js',
   output: {
-    path: path.resolve(__dirname, 'build'),
+    path: path.resolve(__dirname, 'server', 'public'),
     filename: 'main.js'
   },
   devServer: {
-    static: path.resolve(__dirname, 'build'),
+    static: path.resolve(__dirname, 'server', 'public'),
     compress: true,
     port: 3000,
   },
@@ -30,7 +31,12 @@ const config = {
         type: 'json'
       }
     ]
-  }
+  },
+  plugins: [
+    new HtmlWebpackPlugin({
+      template: './client/index.html'
+    })
+  ]
 }
 
 module.exports = config
