@@ -11,6 +11,13 @@ const config = {
     static: path.resolve(__dirname, 'server', 'public'),
     compress: true,
     port: 3000,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        router: () => 'http://localhost:3001',
+        logLevel: 'debug'
+      }
+    }
   },
   devtool: 'source-map',
   module: {

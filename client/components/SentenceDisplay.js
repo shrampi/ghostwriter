@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { parseTokensFromText } from '../utils/successorTable';
+import parseTokensFromText from '../utils/parseTokensFromText';
 
 const SentenceDisplay = ({ sentenceArray, writingInput, successor, showPreview, onWordClick, onSuccessorClick }) => {
 
