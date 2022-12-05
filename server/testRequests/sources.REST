@@ -1,0 +1,14 @@
+
+GET http://localhost:3001/api/sources/
+
+###
+GET http://localhost:3001/api/sources/68abd4142179a0f22a43a548ba1865d5
+
+###
+GET http://localhost:3001/api/sources/68abd4142179a0f22a43a548ba1865d5?words=to
+
+###
+GET http://localhost:3001/api/sources/68abd4142179a0f22a43a548ba1865d5?words=to+be
+
+###
+GET http://localhost:3001/api/sources/68abd4142179a0f22a43a548ba1865d5?words=The+Complete+Works

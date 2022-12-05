@@ -14,7 +14,7 @@ const removeGutenbergHeaderAndFooter = (text) => {
     return result;
   }
   const headerEndIndex = result.indexOf('***', headerStartIndex + 3);
-  const footerStartIndex = result.indexOf('***', headerEndIndex + 3);
+  const footerStartIndex = result.indexOf('*** END OF THE PROJECT GUTENBERG');
   result = result.slice(headerEndIndex + 3, footerStartIndex);
   return result;
 };

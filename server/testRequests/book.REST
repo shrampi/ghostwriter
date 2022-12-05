@@ -1,5 +1,0 @@
-GET http://localhost:3001/api/books/11
-
-###
-
-GET http://localhost:3001/api/search?query=Paradise+Lost

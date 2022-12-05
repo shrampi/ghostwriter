@@ -1,9 +1,10 @@
 import React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import bookService from '../services/bookService';
-import sourceService from '../services/sourceService';
-import findSuccessor from '../utils/findSuccessor';
-import parseTokensFromText from '../utils/parseTokensFromText';
+import sourcesService from '../services/sourcesService';
+import suggestionService from '../services/suggestionService';
+import parseInputIntoTokens from '../utils/parseInputIntoTokens';
+import formatWordIntoToken from '../utils/formatWordIntoToken';
 
 import Welcome from './Welcome';
 import SourceSelector from './SourceSelector';
@@ -14,66 +15,95 @@ import CheckboxInput from './CheckboxInput';
 
 const App = () => {
   const [welcomeVisible, setWelcomeVisible] = useState(false);
+  const [notification, setNotification] = useState('');
   const [sources, setSources] = useState([]);
   const [currentSource, setCurrentSource] = useState({});
   const [sentenceArray, setSentenceArray] = useState([]);
-  const [showPreview, setShowPreview] = useState(true);
-  const [uniqueSuccessor, setUniqueSuccessor] = useState(false);
-  const [weightedSuccessor, setWeightedSuccessor] = useState(false);
   const [writingInput, setWritingInput] = useState('');
-  const [tentativeSuccessor, setTentativeSuccessor] = useState('');
+  const [suggestion, setSuggestion] = useState('');
+  const firstRender = useRef(true);
+  const [suggestionAccuracy, setSuggestionAccuracy] = useState(3); // Articulate, intelligible, experimental, inebriated
+  const [showPreview, setShowPreview] = useState(true);
 
-  /**
-   * Returns a successor of the word using the App state's source material.
-   *
-   * @param {String} word
-   * @returns The successor word as a String.
-   */
-  const nextWord = (word) => {
-    const exclude = uniqueSuccessor ? sentenceArray : [];
-    return findSuccessor(
-      word,
-      currentSource.table,
-      exclude,
-      weightedSuccessor
-    );
-  };
 
   const initializeSourcesHook = () => {
-    sourceService
-      .getAllSources()
+    console.log('Initializing sources...');
+    sourcesService
+      .getSources()
       .then((sources) => {
-        const defaultSource = sources[0];
+        console.log('Sources found: ', sources.map(s => s.title));
         setSources(sources);
-        sourceService.getSource(defaultSource.id).then((source) => {
-          setCurrentSource(source);
-          setTentativeSuccessor(findSuccessor('.', source.table, [], weightedSuccessor));
-        });
+        const defaultSource = sources.find((source) => {
+          return (
+            source.title === 'Complete Works'
+            && source.author === 'William Shakespeare'
+          );
+        })
+        if (!defaultSource) {
+          console.log('Complete Works of Shakespeare not found as default source.');
+          return;
+        }
+        setCurrentSource(defaultSource);
       })
       .catch((error) => {
-        console.log('error retrieving sources: ', error.message);
+        console.log('Error retrieving sources: ', error.message);
       });
   };
 
   useEffect(initializeSourcesHook, []);
+  
+  const lastTokensOfSentenceAndInput = () => {
+    const inputTokens = parseInputIntoTokens(writingInput);
+    const allTokens = sentenceArray.map(word => formatWordIntoToken(word)).concat(inputTokens);
+    if (allTokens.length > suggestionAccuracy) {
+      return allTokens.slice(allTokens.length - suggestionAccuracy);
+    }
+    return allTokens;
+  };
+
+  const tokensPrecedingSentenceIndex = (index) => {
+    const wordsToConsider = sentenceArray
+      .slice(0, index)
+      .map(word => formatWordIntoToken(word));
+    if (index > suggestionAccuracy) {
+      return wordsToConsider.slice(index - suggestionAccuracy);
+    }
+    return wordsToConsider;
+  }
 
   /**
-   * Update's the state's tentative successor, which is displayed alongside the constructed sentence.
-   * Upon submitting a word, the tentative successor is added to the sentence.
-   *
-   * @param {String} input A String which the successor is determined from. If no input is provided, the
-   * function will use the state's sentenceArray.
+   * Helper function that uses suggestionService to retrieve a suggested word from the currentSource. 
+   * If an error occurs, it will log it and resolve to an empty string.
+   * 
+   * @param {Array} predecessors 
+   * @returns {Promise}
    */
-  const updateTentativeSuccessor = (input) => {
-    const inputTokens = parseTokensFromText(input);
-    let predecessor = '.';
-    if (inputTokens.length) {
-      predecessor = inputTokens[inputTokens.length - 1];
-    } else if (sentenceArray.length) {
-      predecessor = sentenceArray[sentenceArray.length - 1];
+  const retrieveSuggestion = (predecessors) => {
+    if (!predecessors) predecessors = [];
+    return suggestionService
+      .getSuggestionFromSource(currentSource, predecessors)
+      .then(suggestion => {
+        return suggestion;
+      })
+      .catch(error => {
+        console.log('Error retrieving suggestion: ', error.message);
+        return '';
+      })
+  }
+
+  const updateSuggestionHook = () => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
     }
-    setTentativeSuccessor(nextWord(predecessor));
+    const predecessors = lastTokensOfSentenceAndInput();
+    console.log('Updating suggestion for predecessors: ', predecessors);
+    retrieveSuggestion(predecessors).then(suggestion => {
+      setSuggestion(suggestion);
+    })
   };
+
+  useEffect(updateSuggestionHook, [writingInput, currentSource]);
 
   const hideWelcomeText = () => {
     if (welcomeVisible) {
@@ -83,56 +113,59 @@ const App = () => {
 
   const handleSourceSelection = (event) => {
     hideWelcomeText();
-    setCurrentSource(event.target.value);
-    updateTentativeSuccessor();
-    console.log('source changed to', event.target.value);
+    const selectedID = event.target.value;
+    setCurrentSource(sources.find((source) => source.id === selectedID));
   };
 
   const handleWritingChange = (event) => {
     hideWelcomeText();
     const input = event.target.value;
     setWritingInput(input);
-    updateTentativeSuccessor(input);
   };
 
   const handleWritingSubmit = (event) => {
     event.preventDefault();
     hideWelcomeText();
-    const tokens = parseTokensFromText(writingInput);
-    const newSentence = sentenceArray.concat(tokens);
-    if (tentativeSuccessor) {
-      newSentence.push(tentativeSuccessor);
+    const words = writingInput.trim().split(' ');
+    const newSentence = sentenceArray.concat(words);
+    if (suggestion) {
+      newSentence.push(suggestion);
     }
-    setSentenceArray(newSentence);
-    updateTentativeSuccessor();
+    setSentenceArray(newSentence); 
     setWritingInput('');
   };
 
   const handleWordClick = (wordIndex) => {
-    let predecessor;
-    if (wordIndex) {
-      predecessor = sentenceArray[wordIndex - 1];
-    } else {
-      predecessor = '.';
-    }
-    const updatedSentence = [...sentenceArray];
-    updatedSentence[wordIndex] = nextWord(predecessor);
-    setSentenceArray(updatedSentence);
+    const predecessors = tokensPrecedingSentenceIndex(wordIndex);
+    retrieveSuggestion(predecessors).then(suggestion => {
+      let newSentence = [...sentenceArray];
+      newSentence[wordIndex] = suggestion;
+      setSentenceArray(newSentence);
+    })
   };
+
+  const handleSuggestionClick = () => {
+    const predecessors = lastTokensOfSentenceAndInput();
+    console.log('Updating suggestion for predecessors: ', predecessors);
+    retrieveSuggestion(predecessors).then(suggestion => {
+      setSuggestion(suggestion);
+    })
+  }
 
   return (
     <div>
       {/* TODO: <Header /> */}
       <h1>GhostWriter</h1>
+      {notification}
       {welcomeVisible && <Welcome />}
       {/* <Hint text='' /> */}
       <SentenceDisplay
         sentenceArray={sentenceArray}
         writingInput={writingInput}
-        successor={tentativeSuccessor}
+        suggestion={suggestion}
         showPreview={showPreview}
         onWordClick={handleWordClick}
-        onSuccessorClick={() => updateTentativeSuccessor()}
+        onSuccessorClick={handleSuggestionClick}
       />
       <WritingForm
         style={{ float: 'none' }}
@@ -140,8 +173,9 @@ const App = () => {
         onChange={handleWritingChange}
         value={writingInput}
       />
-      <SourceSelector
-        sources={sources.map((s) => s.name)}
+      <SourceSelector // TODO: this needs to default to initial currentSource (shakespeare)
+        sources={sources}
+        value={currentSource.id}
         onChange={handleSourceSelection}
       />
       <OptionsMenu>
@@ -149,16 +183,6 @@ const App = () => {
           label={"Show preview of ghostwriter's suggestion:"}
           value={showPreview}
           onChange={() => setShowPreview(!showPreview)}
-        />
-        <CheckboxInput
-          label={'Only suggest unique words:'}
-          value={uniqueSuccessor}
-          onChange={() => setUniqueSuccessor(!uniqueSuccessor)}
-        />
-        <CheckboxInput
-          label={'Use weighted suggestions:'}
-          value={weightedSuccessor}
-          onChange={() => setWeightedSuccessor(!weightedSuccessor)}
         />
       </OptionsMenu>
 

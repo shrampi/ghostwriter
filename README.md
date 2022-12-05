@@ -12,3 +12,5 @@ Text suggestion from your favorite public domain authors
 - figuring out the best data structure for the successor table weighted collection
 - deciding where to put state / where to lift
 - controlled vs. uncontrolled components
+- getting around CORS
+- managing performance with such large JSON objects (what to send over network, what to store on user's pc, etc.)

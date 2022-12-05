@@ -1,14 +1,22 @@
 import React from 'react';
 
-const SourceSelector = ({ sources, onChange }) => {
+const formatSource = (source) => {
+  if (!source.author) {
+    return source.title;
+  }
+  return `${source.author} - ${source.title}`;
+}
+
+const SourceSelector = ({ sources, value, onChange }) => {
+  
   return (
     <div style={{padding: '10px'}}>
         <div style={{float: 'left'}}>
           Now co-writing with: 
         </div>
-        <select onChange={onChange}>
-          {sources.map((option, index) => (
-            <option key={index}>{option}</option>
+        <select value={value} onChange={onChange}>
+          {sources.map((source) => (
+            <option key={source.id} value={source.id}>{formatSource(source)}</option>
           ))}
         </select>
     </div>

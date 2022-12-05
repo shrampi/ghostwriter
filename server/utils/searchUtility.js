@@ -6,14 +6,25 @@ const checkIsNum = (input) => {
 
 const filterCatalog = (filter) => {
   filter = filter.toLowerCase();
-  return catalog.filter(item => {
+  let potentialName = '';
+  if (filter.includes(' ')) {
+    let name = filter.split(' ');
+    potentialName = `${name[1]}, ${name[0]}`;
+  }
+  const filteredCatalog = catalog.filter(item => {
     for (let key in item) {
-      if (item[key].toLowerCase().includes(filter)) {
+      let value = item[key].toLowerCase()
+      if (value.includes(filter)) {
+        return true;
+      }
+      if (potentialName && value.includes(potentialName)) {
         return true;
       }
     }
     return false;
   });
+
+  return filteredCatalog;
 }
 
 const searchCatalog = (query, maxResults=20) => {
@@ -21,11 +32,11 @@ const searchCatalog = (query, maxResults=20) => {
 
   // Return book with matching id for a number query
   if (checkIsNum(query)) {
-    return catalog.filter(item => item['Text#'] === query);
+    return catalog.filter(item => item.id === query);
   }
 
   const results = filterCatalog(query).slice(0, maxResults);
-  console.log('results found: ', results);
+  console.log('results found: ', results.length);
   return results;
 }
 
