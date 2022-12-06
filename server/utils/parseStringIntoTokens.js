@@ -1,19 +1,17 @@
 /**
- * Returns an array of lowercase tokens from the text.
+ * Returns an array of words that have had whitespace/special chars removed and lowercased. 
  *
- * @param {String} text The text to be tokenized.
- * @param {RegExp} charsToTokenize Any characters that should be treated as unique tokens.
- * @param {RegExp} charsToRemove Characters to be removed from the text.
- * @returns
+ * @param {String} input The text to be tokenized.
+ * @returns {Array} an array of string tokens. 
  */
- const parseInputIntoTokens = (text) => {
+ const parseStringIntoTokens = (input) => {
   // How not to make a regex:
   // const relicOfSin = /\d:\d|[A-Z]{2,}\.*|\d+\.|[:;@#$%^&*()\[\]{}=+\\\/`~<>"\d_\u007B-\uFFFF]+/gu;
   
-  if (!text) {
+  if (!input) {
     return [];
   }
-  const result = text
+  const result = input
     .replace(/[^A-Za-z\s-]+/g, '') // Remove any character that isn't a letter, a hyphen, or whitespace
     .replace(/[\s]+/g, ' ') // Replace white spaces with single space
     .toLowerCase()
@@ -22,4 +20,4 @@
   return result;
 };
 
-export default parseInputIntoTokens;
+module.exports = parseStringIntoTokens;
