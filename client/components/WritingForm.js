@@ -11,7 +11,7 @@ const WritingForm = ({ onSubmit, onChange, value }) => {
           onChange={onChange}
           value={value}
         />
-        <button type='submit'>Next</button>
+        <button type='submit'>Compose</button>
       </form>
     </div>
   )

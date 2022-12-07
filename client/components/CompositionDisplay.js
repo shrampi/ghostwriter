@@ -1,0 +1,60 @@
+import React from 'react';
+import PropTypes from 'prop-types';
+import textUtils from '../utils/text';
+
+// Formatted sentence (capitalize and space correctly), writing input (as is), suggestion (capitalize and space correctly)
+
+const CompositionDisplay = ({ composition, userInput, suggestion, showPreview, onWordClick }) => {
+
+  const compositionArray = composition.split(' ');
+  const formattedSuggestion = !(composition + userInput) || textUtils.endsInTerminalPunctuation(composition + userInput)
+  ? textUtils.capitalize(suggestion)
+  : suggestion;
+
+  let formattedCompositionArray = [...compositionArray]; 
+  for (let i = 0; i < formattedCompositionArray.length; i += 1) {
+    if (beginsInTerminalPunctuation())
+  }
+
+  const getSentenceStyle = () => {
+    return { 
+      display: 'inline-block', 
+      whiteSpace: 'pre', 
+      cursor: 'pointer' 
+    };
+  }
+  
+  const getUserInputStyle = () => {
+    return {...getSentenceStyle(), color: 'blue'}
+  }
+
+  const getSuggestionStyle = () => {
+    return {...getSentenceStyle(), color: 'red'}
+  }
+
+  return (
+    <div>
+      {
+        compositionArray.map((word, index) => {
+          return (
+            <div key={index} style={getSentenceStyle()} onClick={() => onWordClick(index)}>
+              {word + ' '}
+            </div>
+          )
+        })
+      }
+      <div style={getUserInputStyle()}>{userInput + ' '}</div>
+      {showPreview && <div style={getSuggestionStyle()}><em>{formattedSuggestion}</em></div>}
+    </div>
+  )
+}
+
+CompositionDisplay.propTypes = {
+  composition: PropTypes.string,
+  userInput: PropTypes.string,
+  suggestion: PropTypes.string,
+  showPreview: PropTypes.bool,
+  onWordClick: PropTypes.func,
+}
+
+export default CompositionDisplay;

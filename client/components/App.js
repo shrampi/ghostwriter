@@ -1,42 +1,40 @@
 import React from 'react';
 import { useState, useEffect, useRef } from 'react';
+
 import bookService from '../services/bookService';
 import sourcesService from '../services/sourcesService';
 import suggestionService from '../services/suggestionService';
+
 import parseStringIntoTokens from '../utils/parseStringIntoTokens';
 import textUtils from '../utils/text';
 
 import Welcome from './Welcome';
 import SourceSelector from './SourceSelector';
 import WritingForm from './WritingForm';
-import SentenceDisplay from './SentenceDisplay';
+import CompositionDisplay from './CompositionDisplay';
 import OptionsMenu from './OptionsMenu';
 import CheckboxInput from './CheckboxInput';
-import text from '../utils/text';
+import NumberInput from './NumberInput';
+import Button from './Button';
+
 
 const App = () => {
   const [welcomeVisible, setWelcomeVisible] = useState(false);
   const [notification, setNotification] = useState('');
+
   const [sources, setSources] = useState([]);
   const [currentSource, setCurrentSource] = useState({});
-  const [sentenceArray, setSentenceArray] = useState([]);
-  const [writingInput, setWritingInput] = useState('');
+
+  const [composition, setComposition] = useState('');
+  const [userInput, setUserInput] = useState('');
   const [suggestion, setSuggestion] = useState('');
-  const firstRender = useRef(true);
+  const [suggestionRequestTimeout, setSuggestionRequestTimeout] = useState(null);
+  
   const [suggestionAccuracy, setSuggestionAccuracy] = useState(3); // Articulate, intelligible, experimental, inebriated
   const [showPreview, setShowPreview] = useState(true);
+  const [numSuggestions, setNumSuggestion] = useState(5);
 
-  /*
-  TODO:
-  - is there a way to simplify the representation of the sentence / writing input / suggestion?
-    - right now sentence is an array, writing input and suggestion are strings. This is making some things more challenging. 
-    - what if we make sentence a string as well. Then it can be changed into an array in the SentenceDisplay component? We can split by \n characters to go to new lines as well. 
-    - rename some things - rename sentence to document. Rename writing input to user input. 
-  - implement a num query for getting new words. That way the response will contain 'num' words that you can tack on. Suggestion can then be more than one word.  
-
-  */
-
-  const initializeSourcesHook = () => {
+  const initializationHook = () => {
     console.log('Initializing sources...');
     sourcesService
       .getSources()
@@ -44,135 +42,138 @@ const App = () => {
         console.log('Sources found: ', sources.map((s) => s.title));
         setSources(sources);
         const defaultSource = sources.find((source) => {
-          return (
-            source.title === 'Complete Works' &&
-            source.author === 'William Shakespeare'
-          );
+          return (source.title === 'Complete Works' && source.author === 'William Shakespeare');
         });
         if (!defaultSource) {
-          console.log(
-            'Complete Works of Shakespeare not found as default source.'
-          );
+          console.log('Complete Works of Shakespeare not found as default source.');
           return;
         }
         setCurrentSource(defaultSource);
+        suggestionService.retrieveSuggestion([], defaultSource, suggestionAccuracy, numSuggestions).then(suggestion => setSuggestion(suggestion));
       })
       .catch((error) => {
-        console.log('Error retrieving sources: ', error.message);
+        console.log('Error retrieving initial sources: ', error.message);
       });
   };
 
-  useEffect(initializeSourcesHook, []);
+  useEffect(initializationHook, []);
 
-  const getSentenceTokens = () => {
-    let tokens = [];
-    for (let word of sentenceArray) {
-      tokens = tokens.concat(parseStringIntoTokens(word));
-    }
-    console.log(tokens);
-    return tokens;
-  };
-
-  const lastTokensOfSentenceAndInput = () => {
-    const inputTokens = parseStringIntoTokens(writingInput);
-    const sentenceTokens = getSentenceTokens();
-    const allTokens = sentenceTokens.concat(inputTokens);
-    if (allTokens.length > suggestionAccuracy) {
-      return allTokens.slice(allTokens.length - suggestionAccuracy);
-    }
-    return allTokens;
-  };
-
-  const tokensPrecedingSentenceIndex = (index) => {
-    const wordsToConsider = getSentenceTokens().slice(0, index);
-    if (index > suggestionAccuracy) {
-      return wordsToConsider.slice(index - suggestionAccuracy);
-    }
-    return wordsToConsider;
-  };
-
-  /**
-   * Helper function that uses suggestionService to retrieve a suggested word from the currentSource.
-   * If an error occurs, it will log it and resolve to an empty string.
-   *
-   * @param {Array} predecessors
-   * @returns {Promise}
-   */
-  const retrieveSuggestion = (predecessors) => {
-    if (!predecessors) predecessors = [];
-    return suggestionService
-      .getSuggestionFromSource(currentSource, predecessors)
-      .then((suggestion) => {
-        return suggestion;
-      })
-      .catch((error) => {
-        console.log('Error retrieving suggestion: ', error.message);
-        return '';
+  const queueSuggestionUpdate = (tokens, source, accuracy, amount) => {
+    const SUGGESTION_REQUEST_INTERVAL = 500;
+    // If there's no suggestion request timer active: 
+    if (!suggestionRequestTimeout) {
+      // Make request and set suggestion
+      suggestionService.retrieveSuggestion(tokens, source, accuracy, amount).then(suggestion => {
+        setSuggestion(suggestion);
       });
-  };
-
-  const suggestionShouldBeCapitalized = () => {
-    const formattedWriting = textUtils.removeExtraWhitespace(writingInput);
-
-    if (textUtils.endsInTerminalPunctuation(formattedWriting)) {
-      return true;
+      // start a timeout which will be the suggestionRequestTimeout. After 1 sec, will be set to null. 
+      const timeoutID = setTimeout(() => {
+        setSuggestionRequestTimeout(null);
+      }, SUGGESTION_REQUEST_INTERVAL);
+      setSuggestionRequestTimeout(timeoutID);
     }
-    if ()
-    return (
-      (!formattedWriting && sentenceArray.length === 0)
-      || (sentenceArray.length === 0 && textUtils.endsInTerminalPunctuation(formattedWriting))
-      || (!formattedWriting && textUtils.endsInTerminalPunctuation(sentenceArray[sentenceArray.length - 1]))
-    );
+    // If there is already a suggestion request timer active:
+    else {
+      // Clear the current timeout
+      clearTimeout(suggestionRequestTimeout);
+      // Indicate the suggestion will update by changing it to '...'
+      setSuggestion('...');
+      // Create a new timeout that will update the suggestion after one second. 
+      const timeoutID = setTimeout(() => {
+        suggestionService.retrieveSuggestion(tokens, source, accuracy, amount).then(suggestion => {
+          setSuggestion(suggestion);
+        });
+        setSuggestionRequestTimeout(null);
+      }, SUGGESTION_REQUEST_INTERVAL);
+      setSuggestionRequestTimeout(timeoutID);
+    }
   }
 
-  const updateSuggestionHook = () => {
-    if (firstRender.current) {
-      firstRender.current = false;
-      return;
-    }
-    const predecessors = lastTokensOfSentenceAndInput();
-    retrieveSuggestion(predecessors).then((suggestion) => {
-      if (suggestionShouldBeCapitalized()){
-        return setSuggestion(textUtils.capitalize(suggestion));
-      }
-      setSuggestion(suggestion);
-    });
-  };
-
-  useEffect(updateSuggestionHook, [writingInput, sentenceArray, currentSource]);
+  const getAllCurrentTokens = () => {
+    return parseStringIntoTokens(composition + ' ' + userInput);
+  }
 
   const handleSourceSelection = (event) => {
     const selectedID = event.target.value;
-    setCurrentSource(sources.find((source) => source.id === selectedID));
+    const newSource = sources.find((source) => source.id === selectedID)
+    setCurrentSource(newSource);
+    const tokens = getAllCurrentTokens();
+    queueSuggestionUpdate(tokens, newSource, suggestionAccuracy, numSuggestions);
   };
 
   const handleWritingChange = (event) => {
-    const input = event.target.value;
-    setWritingInput(input);
+    const newUserInput = event.target.value;
+    setUserInput(newUserInput);
+    const tokens = parseStringIntoTokens(composition + ' ' + newUserInput);
+    queueSuggestionUpdate(tokens, currentSource, suggestionAccuracy, numSuggestions);
   };
 
   const handleWritingSubmit = (event) => {
     event.preventDefault();
-    let newSentence = [...sentenceArray];
-    const formattedWriting = textUtils.removeExtraWhitespace(writingInput);
-    if (formattedWriting) {
-      newSentence = newSentence.concat(formattedWriting.split(' '));
+    // Only only writing submission if our current suggestion is resolved. 
+    if (!suggestionRequestTimeout) {
+      const newComposition = composition + ' ' + userInput + ' ' + suggestion;
+      const formattedComposition = textUtils.formatStringIntoSentence(newComposition);
+      setComposition(formattedComposition);
+      setUserInput('');
+      const tokens = parseStringIntoTokens(formattedComposition);
+      queueSuggestionUpdate(tokens, currentSource, suggestionAccuracy, numSuggestions);
     }
-    if (suggestion) {
-      newSentence.push(suggestion);
-    }
-    setSentenceArray(newSentence);
-    setWritingInput('');
   };
 
   const handleWordClick = (wordIndex) => {
-    const predecessors = tokensPrecedingSentenceIndex(wordIndex);
-    retrieveSuggestion(predecessors).then((suggestion) => {
-      let newSentence = [...sentenceArray];
-      newSentence[wordIndex] = suggestion;
-      setSentenceArray(newSentence);
-    });
+    console.log('Word clicked at index ', wordIndex);
+    const compositionArray = composition.split(' ');
+    const predecessors = compositionArray.slice(0, wordIndex);
+    let tokens = [];
+    for (let word of predecessors) { 
+      const token = parseStringIntoTokens(word)[0];
+      if (token) {
+        tokens.push(token);
+      }
+    }
+    console.log(tokens);
+    suggestionService.retrieveSuggestion(tokens, currentSource, suggestionAccuracy, 1)
+      .then(suggestion => {
+        compositionArray[wordIndex] = suggestion;
+        const newComposition = textUtils.formatWordArrayIntoSentence(compositionArray);
+        setComposition(newComposition);
+      });
   };
+
+  const handleNumSuggestionsChange = (event) => {
+    const newAmount = Number(event.target.value);
+    setNumSuggestion(newAmount);
+    const tokens = getAllCurrentTokens();
+    queueSuggestionUpdate(tokens, currentSource, suggestionAccuracy, newAmount)
+  }
+  
+  const handleSuggestionAccuracyChange = (event) => {
+    const newAccuracy = Number(event.target.value);
+    setSuggestionAccuracy(newAccuracy);
+    const tokens = getAllCurrentTokens();
+    queueSuggestionUpdate(tokens, currentSource, newAccuracy, numSuggestions);
+  }
+
+  const deleteComposition = () => {
+    if (composition) {
+      const newComposition = '';
+      setComposition(newComposition);
+      const tokens = parseStringIntoTokens(userInput);
+      queueSuggestionUpdate(tokens, currentSource, suggestionAccuracy, numSuggestions);
+    }
+  }
+
+  const deleteLastWordOfComposition = () => {
+    if (composition) {
+      const compositionArray = composition.split(' ');
+      compositionArray.pop();
+      const newComposition = textUtils.formatWordArrayIntoSentence(compositionArray);
+      setComposition(newComposition);
+      const tokens = parseStringIntoTokens(newComposition + ' ' + userInput);
+      queueSuggestionUpdate(tokens, currentSource, suggestionAccuracy, numSuggestions);
+    }
+  }
 
   return (
     <div>
@@ -181,9 +182,9 @@ const App = () => {
       {notification}
       {welcomeVisible && <Welcome />}
       {/* <Hint text='' /> */}
-      <SentenceDisplay
-        sentenceArray={sentenceArray}
-        writingInput={writingInput}
+      <CompositionDisplay
+        composition={composition}
+        userInput={userInput}
         suggestion={suggestion}
         showPreview={showPreview}
         onWordClick={handleWordClick}
@@ -192,18 +193,34 @@ const App = () => {
         style={{ float: 'none' }}
         onSubmit={handleWritingSubmit}
         onChange={handleWritingChange}
-        value={writingInput}
+        value={userInput}
       />
-      <SourceSelector // TODO: this needs to default to initial currentSource (shakespeare)
+      <SourceSelector
         sources={sources}
         value={currentSource.id}
         onChange={handleSourceSelection}
       />
+      <Button label="Delete composition" onClick={deleteComposition}/>
+      <Button label="Delete previous word" onClick={deleteLastWordOfComposition}/>
       <OptionsMenu>
         <CheckboxInput
           label={"Show preview of ghostwriter's suggestion:"}
           value={showPreview}
           onChange={() => setShowPreview(!showPreview)}
+        />
+        <NumberInput
+          value={numSuggestions}
+          onChange={handleNumSuggestionsChange}
+          min="0"
+          max="500"
+          label={"Number of words ghostwriter suggests:"}
+        />
+        <NumberInput
+          value={suggestionAccuracy}
+          onChange={handleSuggestionAccuracyChange}
+          min="0"
+          max="3"
+          label={"Suggestion accuracy:"}
         />
       </OptionsMenu>
 

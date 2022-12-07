@@ -1,4 +1,4 @@
-# cowriter
+# GhostWriter
 Text suggestion from your favorite public domain authors
 
 ## Features
@@ -11,6 +11,6 @@ Text suggestion from your favorite public domain authors
 ## Issues
 - figuring out the best data structure for the successor table weighted collection
 - deciding where to put state / where to lift
-- controlled vs. uncontrolled components
 - getting around CORS
-- managing performance with such large JSON objects (what to send over network, what to store on user's pc, etc.)
+- managing performance and bandwidth with such large JSON objects (what to send over network, what to store on user's pc, etc.)
+- choosing whether to make something an effect hook, or make explicit calls

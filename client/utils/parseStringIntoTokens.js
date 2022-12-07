@@ -12,8 +12,9 @@
     return [];
   }
   const result = input
-    .replace(/[^A-Za-z\s-]+/g, '') // Remove any character that isn't a letter, a hyphen, or whitespace
-    .replace(/[\s]+/g, ' ') // Replace white spaces with single space
+    .replace(/[-\.?!]+/g, ' ')
+    .replace(/[^A-Za-z\s]+/g, '')
+    .replace(/[\s]+/g, ' ')
     .toLowerCase()
     .trim()
     .split(' ');
