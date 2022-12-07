@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import bookService from '../services/bookService';
 import sourcesService from '../services/sourcesService';
 import suggestionService from '../services/suggestionService';
+import catalogService from '../services/catalogService';
 
 import parseStringIntoTokens from '../utils/parseStringIntoTokens';
 import textUtils from '../utils/text';
@@ -16,6 +17,20 @@ import OptionsMenu from './OptionsMenu';
 import CheckboxInput from './CheckboxInput';
 import NumberInput from './NumberInput';
 import Button from './Button';
+import GutenbergSearch from './GutenbergSearch';
+
+/*
+Initial sources:
+shakespeare
+bible
+quran
+paradise lost
+all sherlock holmes
+pride and prejudice
+jane eyre
+moby dick
+idk at least like 20-30 options? 
+*/
 
 
 const App = () => {
@@ -59,6 +74,8 @@ const App = () => {
   useEffect(initializationHook, []);
 
   const queueSuggestionUpdate = (tokens, source, accuracy, amount) => {
+    // Indicate suggestion is loading
+    setSuggestion('...');
     const SUGGESTION_REQUEST_INTERVAL = 500;
     // If there's no suggestion request timer active: 
     if (!suggestionRequestTimeout) {
@@ -76,8 +93,6 @@ const App = () => {
     else {
       // Clear the current timeout
       clearTimeout(suggestionRequestTimeout);
-      // Indicate the suggestion will update by changing it to '...'
-      setSuggestion('...');
       // Create a new timeout that will update the suggestion after one second. 
       const timeoutID = setTimeout(() => {
         suggestionService.retrieveSuggestion(tokens, source, accuracy, amount).then(suggestion => {
@@ -110,7 +125,6 @@ const App = () => {
 
   const handleWritingSubmit = (event) => {
     event.preventDefault();
-    // Only only writing submission if our current suggestion is resolved. 
     if (!suggestionRequestTimeout) {
       const newComposition = composition + ' ' + userInput + ' ' + suggestion;
       const formattedComposition = textUtils.formatStringIntoSentence(newComposition);
@@ -132,7 +146,6 @@ const App = () => {
         tokens.push(token);
       }
     }
-    console.log(tokens);
     suggestionService.retrieveSuggestion(tokens, currentSource, suggestionAccuracy, 1)
       .then(suggestion => {
         compositionArray[wordIndex] = suggestion;
@@ -156,7 +169,7 @@ const App = () => {
   }
 
   const deleteComposition = () => {
-    if (composition) {
+    if (composition && confirm('Are you sure you want to delete your composition?')) {
       const newComposition = '';
       setComposition(newComposition);
       const tokens = parseStringIntoTokens(userInput);
@@ -174,6 +187,20 @@ const App = () => {
       queueSuggestionUpdate(tokens, currentSource, suggestionAccuracy, numSuggestions);
     }
   }
+
+  const handleSearchResultClick = (result) => {
+    console.log(result);
+    // Create a new source from result and add it to sources, set it as currentsource
+    // Need to make queueUpdateSuggestion work differently if currentSource.local === true
+
+    // Pull formattedtext with bookService 
+    // Process text into successorTable
+    // Set localSuccessorTables to be the table
+    // Only allow up to 3 local tables
+    // Create a retrieveLocalSuggestion function 
+  }
+
+
 
   return (
     <div>
@@ -223,6 +250,7 @@ const App = () => {
           label={"Suggestion accuracy:"}
         />
       </OptionsMenu>
+      <GutenbergSearch onResultClick={handleSearchResultClick} />
 
       {/* TODO: <Footer/> */}
     </div>

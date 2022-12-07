@@ -6,10 +6,11 @@ const WritingForm = ({ onSubmit, onChange, value }) => {
     <div style={{padding: '10px'}}>
       <form onSubmit={onSubmit}>
         <input 
-          style={{width: '40%'}} 
+          type="text"
           placeholder="Start typing here"
           onChange={onChange}
           value={value}
+          spellCheck="true"
         />
         <button type='submit'>Compose</button>
       </form>

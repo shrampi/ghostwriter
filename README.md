@@ -14,3 +14,14 @@ Text suggestion from your favorite public domain authors
 - getting around CORS
 - managing performance and bandwidth with such large JSON objects (what to send over network, what to store on user's pc, etc.)
 - choosing whether to make something an effect hook, or make explicit calls
+
+
+
+# Interview Timeline:
+- wanted to improve online resources with a full stack solution
+- began the process of learning how to do this
+- ran into some issues, namely making ajax calls within free sharepoint
+  - IT team didn't want to host something off of sharepoint
+  - settled for creating a clean front end solution, but it opened the doors for me
+- was appointed to be IT liason for the department
+- decided I needed to focus my time and energy on learning software engineering

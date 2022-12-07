@@ -18,7 +18,6 @@ const retrieveSuggestion = (tokens, source, accuracy, amount) => {
   }
 
   let url = `${baseURL}/${source.id}/?n=${amount}&a=${accuracy}&${formatTokensIntoQuery(tokens)}`;
-  console.log(url);
   const request = axios.get(url);
   return request
     .then((response) => response.data)

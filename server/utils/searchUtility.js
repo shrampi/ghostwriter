@@ -27,7 +27,7 @@ const filterCatalog = (filter) => {
   return filteredCatalog;
 }
 
-const searchCatalog = (query, maxResults=20) => {
+const searchCatalog = (query, maxResults=30) => {
   console.log('searching catalog for ', query);
 
   // Return book with matching id for a number query

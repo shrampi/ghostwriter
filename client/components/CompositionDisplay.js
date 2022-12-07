@@ -7,14 +7,17 @@ import textUtils from '../utils/text';
 const CompositionDisplay = ({ composition, userInput, suggestion, showPreview, onWordClick }) => {
 
   const compositionArray = composition.split(' ');
-  const formattedSuggestion = !(composition + userInput) || textUtils.endsInTerminalPunctuation(composition + userInput)
+  const potentialComposition = (composition + userInput).trim();
+  const formattedSuggestion = !potentialComposition || textUtils.endsInTerminalPunctuation(potentialComposition)
   ? textUtils.capitalize(suggestion)
   : suggestion;
 
-  let formattedCompositionArray = [...compositionArray]; 
-  for (let i = 0; i < formattedCompositionArray.length; i += 1) {
-    if (beginsInTerminalPunctuation())
-  }
+  let formattedCompositionArray = compositionArray.map(word => {
+    if (/[!?.,]+/.test(word)) {
+      return word;
+    }
+    return (` ${word}`);
+  })
 
   const getSentenceStyle = () => {
     return { 
@@ -35,15 +38,15 @@ const CompositionDisplay = ({ composition, userInput, suggestion, showPreview, o
   return (
     <div>
       {
-        compositionArray.map((word, index) => {
+        formattedCompositionArray.map((word, index) => {
           return (
             <div key={index} style={getSentenceStyle()} onClick={() => onWordClick(index)}>
-              {word + ' '}
+              {word}
             </div>
           )
         })
       }
-      <div style={getUserInputStyle()}>{userInput + ' '}</div>
+      <div style={getUserInputStyle()}>{' ' + userInput + ' '}</div>
       {showPreview && <div style={getSuggestionStyle()}><em>{formattedSuggestion}</em></div>}
     </div>
   )
