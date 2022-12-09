@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import bookService from '../services/bookService';
 import sourcesService from '../services/sourcesService';
 import suggestionService from '../services/suggestionService';
-import catalogService from '../services/catalogService';
 
 import parseStringIntoTokens from '../utils/parseStringIntoTokens';
 import textUtils from '../utils/text';
@@ -37,41 +36,63 @@ const App = () => {
   const [welcomeVisible, setWelcomeVisible] = useState(false);
   const [notification, setNotification] = useState('');
 
-  const [sources, setSources] = useState([]);
-  const [currentSource, setCurrentSource] = useState({});
+  const [sources, setSources] = useState({
+    current: {},
+    server: [],
+    client: []
+  });
 
   const [composition, setComposition] = useState('');
   const [userInput, setUserInput] = useState('');
+
   const [suggestion, setSuggestion] = useState('');
   const [suggestionRequestTimeout, setSuggestionRequestTimeout] = useState(null);
   
-  const [suggestionAccuracy, setSuggestionAccuracy] = useState(3); // Articulate, intelligible, experimental, inebriated
-  const [showPreview, setShowPreview] = useState(true);
-  const [numSuggestions, setNumSuggestion] = useState(5);
+  const [showSuggestionPreview, setShowSuggestionPreview] = useState(true);
+  const [suggestionOptions, setSuggestionOptions] = useState({
+    suggestionAccuracy: 3, // Articulate, intelligible, experimental, inebriated
+    numSuggestedWords: 2
+  });
 
-  const initializationHook = () => {
+  const initializeSourcesHook = () => {
     console.log('Initializing sources...');
-    sourcesService
-      .getSources()
-      .then((sources) => {
-        console.log('Sources found: ', sources.map((s) => s.title));
-        setSources(sources);
-        const defaultSource = sources.find((source) => {
+    sourcesService.getSources().then((serverSources) => {
+        console.log('Sources found: ', serverSources.map((s) => s.title));
+
+        let defaultSource = serverSources.find((source) => {
           return (source.title === 'Complete Works' && source.author === 'William Shakespeare');
         });
+
         if (!defaultSource) {
           console.log('Complete Works of Shakespeare not found as default source.');
+          defaultSource = serverSources[0];
           return;
         }
-        setCurrentSource(defaultSource);
-        suggestionService.retrieveSuggestion([], defaultSource, suggestionAccuracy, numSuggestions).then(suggestion => setSuggestion(suggestion));
+
+        const updatedSources = {...sources, server: serverSources, current: defaultSource};
+        setSources(updatedSources);
+
+        suggestionService.retrieveSuggestion([], defaultSource, suggestionOptions.suggestionAccuracy, suggestionOptions.numSuggestedWords)
+          .then(suggestion => setSuggestion(suggestion));
       })
       .catch((error) => {
         console.log('Error retrieving initial sources: ', error.message);
       });
   };
 
-  useEffect(initializationHook, []);
+  useEffect(initializeSourcesHook, []);
+
+  const getTokensForSuggestion = () => {
+    return parseStringIntoTokens(composition + ' ' + userInput);
+  }
+
+  const updateSuggestion = () => {
+    const tokens = getTokensForSuggestion()
+    suggestionService.retrieveSuggestion(tokens, sources.current, options.suggestionAccuracy, options.numSuggestedWords)
+      .then(suggestion => {
+        setSuggestion(suggestion);
+      });
+  }
 
   const queueSuggestionUpdate = (tokens, source, accuracy, amount) => {
     // Indicate suggestion is loading
@@ -104,6 +125,8 @@ const App = () => {
     }
   }
 
+  useEffect(queueSuggestionUpdateHook, [composition, userInput, suggestionOptions]);
+
   const getAllCurrentTokens = () => {
     return parseStringIntoTokens(composition + ' ' + userInput);
   }
@@ -111,9 +134,10 @@ const App = () => {
   const handleSourceSelection = (event) => {
     const selectedID = event.target.value;
     const newSource = sources.find((source) => source.id === selectedID)
-    setCurrentSource(newSource);
+    const updatedSources = {...sources, current: newSource}
+    setSources(updatedSources);
     const tokens = getAllCurrentTokens();
-    queueSuggestionUpdate(tokens, newSource, suggestionAccuracy, numSuggestions);
+    queueSuggestionUpdate(tokens, newSource, suggestionOptions.suggestionAccuracy, suggestionOptions.numSuggestions);
   };
 
   const handleWritingChange = (event) => {
@@ -154,16 +178,24 @@ const App = () => {
       });
   };
 
-  const handleNumSuggestionsChange = (event) => {
+  const handleShowSuggestionPreviewChange = () => {
+    const newValue = !suggestionOptions.showSuggestionPreview;
+    const updatedOptions = {...suggestionOptions, showSuggestionPreview: newValue};
+    setSuggestionOptions(updatedOptions);
+  }
+
+  const handleNumSuggestedWordsChange = (event) => {
     const newAmount = Number(event.target.value);
-    setNumSuggestion(newAmount);
+    const updatedOptions = {...suggestionOptions, numSuggestedWords: newAmount}
+    setSuggestionOptions(updatedOptions);
     const tokens = getAllCurrentTokens();
     queueSuggestionUpdate(tokens, currentSource, suggestionAccuracy, newAmount)
   }
   
   const handleSuggestionAccuracyChange = (event) => {
     const newAccuracy = Number(event.target.value);
-    setSuggestionAccuracy(newAccuracy);
+    const updatedOptions = {...suggestionOptions, suggestionAccuracy: newAccuracy}
+    setSuggestionOptions(updatedOptions);
     const tokens = getAllCurrentTokens();
     queueSuggestionUpdate(tokens, currentSource, newAccuracy, numSuggestions);
   }
@@ -213,7 +245,7 @@ const App = () => {
         composition={composition}
         userInput={userInput}
         suggestion={suggestion}
-        showPreview={showPreview}
+        showPreview={suggestionOptions.showSuggestionPreview}
         onWordClick={handleWordClick}
       />
       <WritingForm
@@ -232,12 +264,12 @@ const App = () => {
       <OptionsMenu>
         <CheckboxInput
           label={"Show preview of ghostwriter's suggestion:"}
-          value={showPreview}
-          onChange={() => setShowPreview(!showPreview)}
+          value={suggestionOptions.showSuggestionPreview}
+          onChange={handleShowSuggestionPreviewChange}
         />
         <NumberInput
           value={numSuggestions}
-          onChange={handleNumSuggestionsChange}
+          onChange={handleNumSuggestedWordsChange}
           min="0"
           max="500"
           label={"Number of words ghostwriter suggests:"}
