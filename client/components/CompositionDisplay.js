@@ -6,12 +6,12 @@ import textUtils from '../utils/text';
 
 const CompositionDisplay = ({ composition, userInput, suggestion, showPreview, onWordClick }) => {
 
-  const compositionArray = composition.split(' ');
   const potentialComposition = (composition + userInput).trim();
   const formattedSuggestion = !potentialComposition || textUtils.endsInTerminalPunctuation(potentialComposition)
   ? textUtils.capitalize(suggestion)
   : suggestion;
 
+  const compositionArray = composition.split(' ');
   let formattedCompositionArray = compositionArray.map(word => {
     if (/[!?.,]+/.test(word)) {
       return word;

@@ -1,6 +1,6 @@
 const sourcesRouter = require('express').Router();
 const sources = require('../resources/sources.json');
-const findNextWord = require('../utils/findNextWord');
+const findSuccessor = require('../../shared/utils/findSuccessor');
 
 const baseURL = '/api/sources';
 
@@ -23,12 +23,6 @@ sourcesRouter.get(baseURL + '/:id', (request, response) => {
   const accuracyQuery = request.query.a;
   const accuracy = accuracyQuery !== undefined ? accuracyQuery : 3; 
 
-  if (tokens.length > 3) {
-    return response
-      .status(400)
-      .send({ error: 'words query must have less than four words' });
-  }
-
   if (amount < 0 || amount > 500) {
     return response
       .status(400)
@@ -49,8 +43,8 @@ sourcesRouter.get(baseURL + '/:id', (request, response) => {
 
   console.log('Suggestion requested from source: ', source.title, source.author);
   console.log('Predecessors: ', tokens);
-  console.log('Num suggestions requested: ', amount);
-  console.log('Accuracy of suggestions: ', accuracy);
+  console.log('Num words requested: ', amount);
+  console.log('Accuracy of suggestion: ', accuracy);
 
   let suggestionsNeeded = amount;
   let suggestions = '';
@@ -59,7 +53,7 @@ sourcesRouter.get(baseURL + '/:id', (request, response) => {
     currentTokens = currentTokens.slice(currentTokens.length - accuracy);
   }
   while (suggestionsNeeded > 0) {
-    let newSuggestion = findNextWord(source.data, currentTokens);
+    let newSuggestion = findSuccessor(source.data, currentTokens);
     suggestions += newSuggestion + ' ';
     currentTokens.push(newSuggestion);
     if (currentTokens.length > accuracy) {

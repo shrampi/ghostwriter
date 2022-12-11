@@ -21,4 +21,4 @@
   return result;
 };
 
-export default parseStringIntoTokens;
+module.exports = parseStringIntoTokens;

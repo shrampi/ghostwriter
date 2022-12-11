@@ -1,12 +1,16 @@
 import React from 'react';
 import { useState, useEffect, useRef } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 
 import bookService from '../services/bookService';
 import sourcesService from '../services/sourcesService';
 import suggestionService from '../services/suggestionService';
 
-import parseStringIntoTokens from '../utils/parseStringIntoTokens';
 import textUtils from '../utils/text';
+const parseStringIntoTokens = require('../../shared/utils/parseStringIntoTokens');
+const removeGutenbergLabels = require('../../shared/utils/removeGutenbergLabels');
+const generateSuccessorTable = require('../../shared/utils/generateSuccessorTable');
+
 
 import Welcome from './Welcome';
 import SourceSelector from './SourceSelector';
@@ -28,6 +32,7 @@ all sherlock holmes
 pride and prejudice
 jane eyre
 moby dick
+federalist papers
 idk at least like 20-30 options? 
 */
 
@@ -48,10 +53,10 @@ const App = () => {
   const [suggestion, setSuggestion] = useState('');
   const [suggestionRequestTimeout, setSuggestionRequestTimeout] = useState(null);
   
-  const [showSuggestionPreview, setShowSuggestionPreview] = useState(true);
-  const [suggestionOptions, setSuggestionOptions] = useState({
+  const [options, setOptions] = useState({
     suggestionAccuracy: 3, // Articulate, intelligible, experimental, inebriated
-    numSuggestedWords: 2
+    numSuggestedWords: 1, 
+    showSuggestionPreview: true
   });
 
   const initializeSourcesHook = () => {
@@ -71,9 +76,6 @@ const App = () => {
 
         const updatedSources = {...sources, server: serverSources, current: defaultSource};
         setSources(updatedSources);
-
-        suggestionService.retrieveSuggestion([], defaultSource, suggestionOptions.suggestionAccuracy, suggestionOptions.numSuggestedWords)
-          .then(suggestion => setSuggestion(suggestion));
       })
       .catch((error) => {
         console.log('Error retrieving initial sources: ', error.message);
@@ -82,69 +84,65 @@ const App = () => {
 
   useEffect(initializeSourcesHook, []);
 
-  const getTokensForSuggestion = () => {
-    return parseStringIntoTokens(composition + ' ' + userInput);
+  const updateSuggestionFromServer = () => {
+    const tokens = parseStringIntoTokens(composition + ' ' + userInput);
+    // Only allow server requests once server sources have been initialized.
+    if (sources.server.length) {
+      suggestionService.retrieveSuggestion(tokens, sources.current, options.suggestionAccuracy, options.numSuggestedWords)
+        .then(suggestion => {
+          setSuggestion(suggestion);
+        });
+    }
   }
 
-  const updateSuggestion = () => {
-    const tokens = getTokensForSuggestion()
-    suggestionService.retrieveSuggestion(tokens, sources.current, options.suggestionAccuracy, options.numSuggestedWords)
-      .then(suggestion => {
-        setSuggestion(suggestion);
-      });
-  }
-
-  const queueSuggestionUpdate = (tokens, source, accuracy, amount) => {
+  // FIXME: have it consistently update every 500ms, rather than waiting 500ms between updates?
+  // Have the timeout handling up top, then do stuff based on timeout state? 
+  const queueSuggestionUpdateFromServer = () => {
+    const SUGGESTION_REQUEST_INTERVAL = 500;
     // Indicate suggestion is loading
     setSuggestion('...');
-    const SUGGESTION_REQUEST_INTERVAL = 500;
     // If there's no suggestion request timer active: 
     if (!suggestionRequestTimeout) {
-      // Make request and set suggestion
-      suggestionService.retrieveSuggestion(tokens, source, accuracy, amount).then(suggestion => {
-        setSuggestion(suggestion);
-      });
+      updateSuggestionFromServer();
       // start a timeout which will be the suggestionRequestTimeout. After 1 sec, will be set to null. 
       const timeoutID = setTimeout(() => {
         setSuggestionRequestTimeout(null);
       }, SUGGESTION_REQUEST_INTERVAL);
       setSuggestionRequestTimeout(timeoutID);
+      return;
     }
     // If there is already a suggestion request timer active:
-    else {
-      // Clear the current timeout
-      clearTimeout(suggestionRequestTimeout);
-      // Create a new timeout that will update the suggestion after one second. 
-      const timeoutID = setTimeout(() => {
-        suggestionService.retrieveSuggestion(tokens, source, accuracy, amount).then(suggestion => {
-          setSuggestion(suggestion);
-        });
-        setSuggestionRequestTimeout(null);
-      }, SUGGESTION_REQUEST_INTERVAL);
-      setSuggestionRequestTimeout(timeoutID);
+    // Clear the current timeout
+    clearTimeout(suggestionRequestTimeout);
+    // Create a new timeout that will update the suggestion after one second. 
+    const timeoutID = setTimeout(() => {
+      updateSuggestionFromServer();
+      setSuggestionRequestTimeout(null);
+    }, SUGGESTION_REQUEST_INTERVAL);
+    setSuggestionRequestTimeout(timeoutID);
+  }
+
+  const updateSuggestionHook = () => {
+    // Check if current source is on server
+    if (!sources.current.data) {
+      queueSuggestionUpdateFromServer();
     }
   }
 
-  useEffect(queueSuggestionUpdateHook, [composition, userInput, suggestionOptions]);
-
-  const getAllCurrentTokens = () => {
-    return parseStringIntoTokens(composition + ' ' + userInput);
-  }
+  useEffect(updateSuggestionHook, [composition, userInput, sources, options]);
 
   const handleSourceSelection = (event) => {
     const selectedID = event.target.value;
-    const newSource = sources.find((source) => source.id === selectedID)
+    const clientSourcesInfo = sources.client.map(source => ({...source, data: null}));
+    const allSources = sources.server.concat(clientSourcesInfo);
+    const newSource = allSources.find((source) => source.id === selectedID)
     const updatedSources = {...sources, current: newSource}
     setSources(updatedSources);
-    const tokens = getAllCurrentTokens();
-    queueSuggestionUpdate(tokens, newSource, suggestionOptions.suggestionAccuracy, suggestionOptions.numSuggestions);
   };
 
   const handleWritingChange = (event) => {
     const newUserInput = event.target.value;
     setUserInput(newUserInput);
-    const tokens = parseStringIntoTokens(composition + ' ' + newUserInput);
-    queueSuggestionUpdate(tokens, currentSource, suggestionAccuracy, numSuggestions);
   };
 
   const handleWritingSubmit = (event) => {
@@ -154,8 +152,6 @@ const App = () => {
       const formattedComposition = textUtils.formatStringIntoSentence(newComposition);
       setComposition(formattedComposition);
       setUserInput('');
-      const tokens = parseStringIntoTokens(formattedComposition);
-      queueSuggestionUpdate(tokens, currentSource, suggestionAccuracy, numSuggestions);
     }
   };
 
@@ -179,33 +175,26 @@ const App = () => {
   };
 
   const handleShowSuggestionPreviewChange = () => {
-    const newValue = !suggestionOptions.showSuggestionPreview;
-    const updatedOptions = {...suggestionOptions, showSuggestionPreview: newValue};
-    setSuggestionOptions(updatedOptions);
+    const newValue = !options.showSuggestionPreview;
+    const updatedOptions = {...options, showSuggestionPreview: newValue};
+    setOptions(updatedOptions);
   }
 
   const handleNumSuggestedWordsChange = (event) => {
     const newAmount = Number(event.target.value);
-    const updatedOptions = {...suggestionOptions, numSuggestedWords: newAmount}
-    setSuggestionOptions(updatedOptions);
-    const tokens = getAllCurrentTokens();
-    queueSuggestionUpdate(tokens, currentSource, suggestionAccuracy, newAmount)
+    const updatedOptions = {...options, numSuggestedWords: newAmount}
+    setOptions(updatedOptions);
   }
   
   const handleSuggestionAccuracyChange = (event) => {
     const newAccuracy = Number(event.target.value);
-    const updatedOptions = {...suggestionOptions, suggestionAccuracy: newAccuracy}
-    setSuggestionOptions(updatedOptions);
-    const tokens = getAllCurrentTokens();
-    queueSuggestionUpdate(tokens, currentSource, newAccuracy, numSuggestions);
+    const updatedOptions = {...options, suggestionAccuracy: newAccuracy}
+    setOptions(updatedOptions);
   }
 
   const deleteComposition = () => {
     if (composition && confirm('Are you sure you want to delete your composition?')) {
-      const newComposition = '';
-      setComposition(newComposition);
-      const tokens = parseStringIntoTokens(userInput);
-      queueSuggestionUpdate(tokens, currentSource, suggestionAccuracy, numSuggestions);
+      setComposition('');
     }
   }
 
@@ -215,13 +204,27 @@ const App = () => {
       compositionArray.pop();
       const newComposition = textUtils.formatWordArrayIntoSentence(compositionArray);
       setComposition(newComposition);
-      const tokens = parseStringIntoTokens(newComposition + ' ' + userInput);
-      queueSuggestionUpdate(tokens, currentSource, suggestionAccuracy, numSuggestions);
     }
   }
 
+  const createSourceFromSearchResult = (result) => {
+    const gutenbergID = result.id;
+    const newSource = {
+      id: uuidv4(),
+      title: result.title,
+      author: result.authors,
+      local: true
+    }
+
+    bookService.getBook(gutenbergID).then(book => {
+      const formattedText = removeGutenbergLabels(book);
+      const table = generateSuccessorTable(formattedText);
+    });
+    
+  }
+
   const handleSearchResultClick = (result) => {
-    console.log(result);
+    createSourceFromSearchResult(result);
     // Create a new source from result and add it to sources, set it as currentsource
     // Need to make queueUpdateSuggestion work differently if currentSource.local === true
 
@@ -245,7 +248,7 @@ const App = () => {
         composition={composition}
         userInput={userInput}
         suggestion={suggestion}
-        showPreview={suggestionOptions.showSuggestionPreview}
+        showPreview={options.showSuggestionPreview}
         onWordClick={handleWordClick}
       />
       <WritingForm
@@ -256,7 +259,6 @@ const App = () => {
       />
       <SourceSelector
         sources={sources}
-        value={currentSource.id}
         onChange={handleSourceSelection}
       />
       <Button label="Delete composition" onClick={deleteComposition}/>
@@ -264,18 +266,18 @@ const App = () => {
       <OptionsMenu>
         <CheckboxInput
           label={"Show preview of ghostwriter's suggestion:"}
-          value={suggestionOptions.showSuggestionPreview}
+          value={options.showSuggestionPreview}
           onChange={handleShowSuggestionPreviewChange}
         />
         <NumberInput
-          value={numSuggestions}
+          value={options.numSuggestedWords}
           onChange={handleNumSuggestedWordsChange}
           min="0"
           max="500"
           label={"Number of words ghostwriter suggests:"}
         />
         <NumberInput
-          value={suggestionAccuracy}
+          value={options.suggestionAccuracy}
           onChange={handleSuggestionAccuracyChange}
           min="0"
           max="3"
