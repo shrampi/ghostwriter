@@ -7,6 +7,7 @@ const SearchForm = ({onSubmit}) => {
       <form onSubmit={onSubmit}>
         <input
           type="search"
+          id="catalog-search"
           placeholder="Try title, author, subject, or gutenberg ID"
           name="q"
           spellCheck="true"

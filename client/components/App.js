@@ -10,6 +10,7 @@ import textUtils from '../utils/text';
 const parseStringIntoTokens = require('../../shared/utils/parseStringIntoTokens');
 const removeGutenbergLabels = require('../../shared/utils/removeGutenbergLabels');
 const generateSuccessorTable = require('../../shared/utils/generateSuccessorTable');
+const findSuccessor = require('../../shared/utils/findSuccessor');
 
 
 import Welcome from './Welcome';
@@ -58,6 +59,8 @@ const App = () => {
     numSuggestedWords: 1, 
     showSuggestionPreview: true
   });
+
+  const [showSearch, setShowSearch] = useState(false);
 
   const initializeSourcesHook = () => {
     console.log('Initializing sources...');
@@ -126,6 +129,9 @@ const App = () => {
     // Check if current source is on server
     if (!sources.current.data) {
       queueSuggestionUpdateFromServer();
+    }
+    else {
+      const suggestion = findSuccessor()
     }
   }
 
@@ -207,24 +213,30 @@ const App = () => {
     }
   }
 
+  // FIXME: 
   const createSourceFromSearchResult = (result) => {
     const gutenbergID = result.id;
     const newSource = {
       id: uuidv4(),
       title: result.title,
       author: result.authors,
-      local: true
     }
 
-    bookService.getBook(gutenbergID).then(book => {
+    return bookService.getBook(gutenbergID).then(book => {
       const formattedText = removeGutenbergLabels(book);
       const table = generateSuccessorTable(formattedText);
+      newSource.data = table;
+      return newSource;
     });
-    
   }
 
   const handleSearchResultClick = (result) => {
-    createSourceFromSearchResult(result);
+    createSourceFromSearchResult(result).then(source => {
+      const newClientSources = sources.client.concat(source);
+      setSources({ ...sources, client: newClientSources, current: source });
+    });
+    setShowSearch(false);
+
     // Create a new source from result and add it to sources, set it as currentsource
     // Need to make queueUpdateSuggestion work differently if currentSource.local === true
 
@@ -284,7 +296,8 @@ const App = () => {
           label={"Suggestion accuracy:"}
         />
       </OptionsMenu>
-      <GutenbergSearch onResultClick={handleSearchResultClick} />
+      <button onClick={() => setShowSearch(!showSearch)}>{showSearch ? 'Hide Search Bar' : 'Search Bar'}</button>
+      {showSearch && <GutenbergSearch onResultClick={handleSearchResultClick} />}
 
       {/* TODO: <Footer/> */}
     </div>

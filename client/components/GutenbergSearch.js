@@ -4,29 +4,33 @@ import SearchForm from './SearchForm';
 import SearchResults from './SearchResults';
 import catalogService from '../services/catalogService';
 
-const GutenbergSearch = ({onResultClick}) => {
-
+const GutenbergSearch = ({ onResultClick }) => {
   const [results, setResults] = useState([]);
 
   const handleBookSearchSubmit = (event) => {
     event.preventDefault();
     const query = event.target[0].value;
-    console.log('Search catalog for ', query);
-    catalogService.searchCatalog(query).then(results => {
-      setResults(results);
-    });
-  }
+    if (query.trim()) {
+      console.log('Searching catalog for ', query);
+      catalogService.searchCatalog(query).then((results) => {
+        setResults(results);
+      });
+    }
+    else {
+      setResults([]);
+    }
+  };
 
   return (
     <div>
-      <SearchForm onSubmit={handleBookSearchSubmit}/>
-      <SearchResults results={results} onResultClick={onResultClick}/>
+      <SearchForm onSubmit={handleBookSearchSubmit} />
+      <SearchResults results={results} onResultClick={onResultClick} />
     </div>
-  )
-}
+  );
+};
 
 GutenbergSearch.propTypes = {
-  onResultClick: PropTypes.func
-}
+  onResultClick: PropTypes.func,
+};
 
 export default GutenbergSearch;
