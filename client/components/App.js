@@ -9,7 +9,7 @@ import suggestionService from '../services/suggestionService';
 import textUtils from '../utils/text';
 const parseStringIntoTokens = require('../../shared/utils/parseStringIntoTokens');
 const removeGutenbergLabels = require('../../shared/utils/removeGutenbergLabels');
-const generateSuccessorTable = require('../../shared/utils/generateSuccessorTable');
+const generateSuccessorTable = require('../../shared/utils/generateSuccessorTree');
 const findSuccessor = require('../../shared/utils/findSuccessor');
 
 
