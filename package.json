@@ -6,7 +6,8 @@
     "build": "webpack --mode=production",
     "start": "webpack serve --mode=development",
     "server": "NODE_ENV=production node ./server/index.js",
-    "server:dev": "NODE_ENV=development nodemon ./server/index.js"
+    "server:dev": "NODE_ENV=development nodemon ./server/index.js",
+    "test": "jest"
   },
   "license": "MIT",
   "devDependencies": {

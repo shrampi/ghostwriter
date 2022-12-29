@@ -17,8 +17,11 @@
     .replace(/[\s]+/g, ' ')
     .toLowerCase()
     .trim()
-    .split(' ');
-  return result;
+
+  if (!result) {
+    return [];
+  }
+  return result.split(' ');
 };
 
 module.exports = parseStringIntoTokens;

@@ -15,6 +15,7 @@ sourcesRouter.get(baseURL, (request, response) => {
 });
 
 sourcesRouter.get(baseURL + '/:id', (request, response) => {
+  console.log('here');
   const id = request.params.id;
   const amountQuery = request.query.n;
   const amount = amountQuery !== undefined ? Number(amountQuery) : 1;
