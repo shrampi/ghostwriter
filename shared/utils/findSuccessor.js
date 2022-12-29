@@ -3,27 +3,36 @@ const chooseRandom = (words) => {
   return words[randomIndex];
 };
 
+const isEmptyObject = (obj) => {
+  return Object.keys(successorTree).length === 0;
+}
+
 /**
- * Returns a successor randomly chosen from the predecessor words chain in the given
- * source data.
+ * Returns a successor to the given tokens. If an empty tree is provided, returns null.
  *
- * @param {Object} source The successor table from which to generate the next word.
- * @param {Array} predecessor An array of tokens used to find the successor.
+ * @param {Object} successorTree The successor tree from which to generate the next word.
+ * @param {Array} tokens An array of tokens used to find the successor.
  * @returns {String} The next word.
  */
-const findSuccessor = (successorTable, tokens) => {
-  let potentialSuccessors = successorTable;
-  for (let i = 0; i < tokens.length; i += 1) {
-    if (word in potentialSuccessors) {
-      potentialSuccessors = potentialSuccessors[word];
+const findSuccessor = (successorTree, tokens) => {
+  if (isEmptyObject(successorTree)) {
+    return null;
+  }
+
+  let currentNode = successorTree;
+  for (let token of tokens) {
+    // If successor branch exists and is not a leaf, move to it
+    const successorNode = currentNode[token];
+    if (successorNode && !isEmptyObject(successorNode)) {
+      currentNode = successorNode;
+    }
+    // Otherwise, move back to the root
+    else {
+      currentNode = successorTree;
     }
   }
 
-  if (!(potentialSuccessors instanceof Array)) {
-    potentialSuccessors = Object.keys(potentialSuccessors);
-  }
-
-  return chooseRandom(potentialSuccessors);
+  return chooseRandom(Object.keys(currentNode));
 };
 
 module.exports = findSuccessor;
