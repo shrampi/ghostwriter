@@ -3,8 +3,11 @@ const chooseRandom = (words) => {
   return words[randomIndex];
 };
 
-const isEmptyObject = (obj) => {
-  return Object.keys(successorTree).length === 0;
+const hasSuccessors = (successorTree) => {
+  if (!successorTree) {
+    return false;
+  }
+  return Object.keys(successorTree).length > 0;
 }
 
 /**
@@ -15,18 +18,21 @@ const isEmptyObject = (obj) => {
  * @returns {String} The next word.
  */
 const findSuccessor = (successorTree, tokens) => {
-  if (isEmptyObject(successorTree)) {
+  if (!hasSuccessors(successorTree)) {
     return null;
   }
-
+  
   let currentNode = successorTree;
   for (let token of tokens) {
-    // If successor branch exists and is not a leaf, move to it
-    const successorNode = currentNode[token];
-    if (successorNode && !isEmptyObject(successorNode)) {
-      currentNode = successorNode;
+    // Check for a branch with successors in our current node
+    if (hasSuccessors(currentNode[token])) {
+      currentNode = currentNode[token];
     }
-    // Otherwise, move back to the root
+    // Check for a branch with successors in the root
+    else if (hasSuccessors(successorTree[token])) {
+      currentNode = successorTree[token];
+    }
+    // Otherwise, use root node
     else {
       currentNode = successorTree;
     }
