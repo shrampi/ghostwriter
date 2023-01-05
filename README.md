@@ -14,7 +14,7 @@ Text suggestion from your favorite public domain authors
 - getting around CORS
 - managing performance and bandwidth with such large JSON objects (what to send over network, what to store on user's pc, etc.)
 - choosing whether to make something an effect hook, or make explicit calls
-
+- Project structure
 
 
 # Interview Timeline:
