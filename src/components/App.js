@@ -12,7 +12,6 @@ import removeGutenbergLabels from '../lib/removeGutenbergLabels';
 import generateSuccessorTree from '../lib/generateSuccessorTree';
 import findSuccessor from '../lib/findSuccessor';
 
-
 import Welcome from './Welcome';
 import SourceSelector from './SourceSelector';
 import WritingForm from './WritingForm';
@@ -36,6 +35,18 @@ moby dick
 federalist papers
 idk at least like 20-30 options? 
 */
+
+/*
+TODO:
+- Make sure suggestion update works with local source.
+- Dropdown needs to select new source if it doesn't already
+- Only allow up to 3 local sources
+- Add composition to local storage. 
+
+*/
+
+
+    
 
 
 const App = () => {
@@ -126,12 +137,14 @@ const App = () => {
   }
 
   const updateSuggestionHook = () => {
-    // Check if current source is on server
-    if (!sources.current.data) {
+    // Check if current source has local data
+    if (!sources.current.tree) {
       queueSuggestionUpdateFromServer();
     }
     else {
-      const suggestion = findSuccessor()
+      const tokens = parseStringIntoTokens(composition + ' ' + userInput);
+      const suggestion = findSuccessor(sources.current.tree, tokens)
+      setSuggestion(suggestion);
     }
   }
 
@@ -172,7 +185,7 @@ const App = () => {
         tokens.push(token);
       }
     }
-    suggestionService.retrieveSuggestion(tokens, currentSource, suggestionAccuracy, 1)
+    suggestionService.retrieveSuggestion(tokens, sources.current, options.suggestionAccuracy, 1)
       .then(suggestion => {
         compositionArray[wordIndex] = suggestion;
         const newComposition = textUtils.formatWordArrayIntoSentence(compositionArray);
@@ -184,7 +197,7 @@ const App = () => {
     const newValue = !options.showSuggestionPreview;
     const updatedOptions = {...options, showSuggestionPreview: newValue};
     setOptions(updatedOptions);
-  }
+  };
 
   const handleNumSuggestedWordsChange = (event) => {
     const newAmount = Number(event.target.value);
@@ -221,11 +234,16 @@ const App = () => {
       title: result.title,
       author: result.authors,
     }
-
+    console.log('New source information: ', newSource);
+    console.log('Retrieving text from Project Gutenberg...')
     return bookService.getBook(gutenbergID).then(book => {
       const formattedText = removeGutenbergLabels(book);
-      const table = generateSuccessorTree(formattedText);
-      newSource.data = table;
+      console.log('First 50 chars of book: ', formattedText.slice(0, 50));
+      console.log('Generating successor tree...');
+      const tree = generateSuccessorTree(formattedText);
+      console.log('Successor tree generated.');
+      console.log('Successors of THE: ', tree['the']);
+      newSource.tree = tree;
       return newSource;
     });
   }
@@ -233,20 +251,13 @@ const App = () => {
   const handleSearchResultClick = (result) => {
     console.log('Selected result: ', result);
     createSourceFromSearchResult(result).then(source => {
-      console.log('Source created: ', source.title);
+      console.log('Adding source to state...');
       const newClientSources = sources.client.concat(source);
       setSources({ ...sources, client: newClientSources, current: source });
+      console.log('Done');
+      console.log('Char length of data: ', JSON.stringify(source.tree).length);
     });
     setShowSearch(false);
-
-    // Create a new source from result and add it to sources, set it as currentsource
-    // Need to make queueUpdateSuggestion work differently if currentSource.local === true
-
-    // Pull formattedtext with bookService 
-    // Process text into successorTable
-    // Set localSuccessorTables to be the table
-    // Only allow up to 3 local tables
-    // Create a retrieveLocalSuggestion function 
   }
 
   return (
