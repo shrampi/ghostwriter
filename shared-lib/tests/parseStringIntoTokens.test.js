@@ -1,4 +1,4 @@
-const parse = require('./parseStringIntoTokens');
+const parse = require('../parseStringIntoTokens');
 
 test('Empty string returns no tokens', () => {
   expect(parse('')).toHaveLength(0);
@@ -9,7 +9,7 @@ test('Whitespace string returns no tokens', () => {
 });
 
 test('Non-alphabetic characters return no tokens', () => {
-  const weirdString = '@#$%^&*()_+=\';:\",<>/\\|`~⚗〠ൠᴥ௵ஔ∰ጃ෴ᅘ༽໒✺';
+  const weirdString = '@#$%^&*()_+=\';:",<>/\\|`~⚗〠ൠᴥ௵ஔ∰ጃ෴ᅘ༽໒✺';
   expect(parse(weirdString)).toHaveLength(0);
 })
 

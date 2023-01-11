@@ -1,6 +1,6 @@
 const sourcesRouter = require('express').Router();
 const sources = require('../resources/sources.json');
-const findSuccessor = require('../../lib/findSuccessor');
+const findSuccessor = require('../../shared-lib/findSuccessor');
 
 const baseURL = '/api/sources';
 

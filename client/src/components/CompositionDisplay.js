@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import textUtils from '../lib/textUtils';
+import textUtils from '../../../shared-lib/textUtils';
 
 // Formatted sentence (capitalize and space correctly), writing input (as is), suggestion (capitalize and space correctly)
 

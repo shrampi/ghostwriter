@@ -6,11 +6,11 @@ import bookService from '../services/bookService';
 import sourcesService from '../services/sourcesService';
 import suggestionService from '../services/suggestionService';
 
-import textUtils from '../lib/textUtils';
-import parseStringIntoTokens from '../lib/parseStringIntoTokens';
-import removeGutenbergLabels from '../lib/removeGutenbergLabels';
-import generateSuccessorTree from '../lib/generateSuccessorTree';
-import findSuccessor from '../lib/findSuccessor';
+import textUtils from '../../../shared-lib/textUtils';
+import parseStringIntoTokens from '../../../shared-lib/parseStringIntoTokens';
+import removeGutenbergLabels from '../../../shared-lib/removeGutenbergLabels';
+import generateSuccessorTree from '../../../shared-lib/generateSuccessorTree';
+import findSuccessor from '../../../shared-lib/findSuccessor';
 
 import Welcome from './Welcome';
 import SourceSelector from './SourceSelector';
@@ -21,6 +21,7 @@ import CheckboxInput from './CheckboxInput';
 import NumberInput from './NumberInput';
 import Button from './Button';
 import GutenbergSearch from './GutenbergSearch';
+import Header from './Header';
 
 /*
 Initial sources:
@@ -38,8 +39,6 @@ idk at least like 20-30 options?
 
 /*
 TODO:
-- Make sure suggestion update works with local source.
-- Dropdown needs to select new source if it doesn't already
 - Only allow up to 3 local sources
 - Add composition to local storage. 
 
@@ -262,8 +261,7 @@ const App = () => {
 
   return (
     <div>
-      {/* TODO: <Header /> */}
-      <h1>GhostWriter</h1>
+      <Header/>
       {notification}
       {welcomeVisible && <Welcome />}
       {/* <Hint text='' /> */}

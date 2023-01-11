@@ -2,13 +2,13 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const path = require('path');
 
 const config = {
-  entry: './src/index.js',
+  entry: './client/src/index.js',
   output: {
-    path: path.resolve(__dirname, 'public'),
+    path: path.resolve(__dirname, '/client/public'),
     filename: 'main.js'
   },
   devServer: {
-    static: path.resolve(__dirname, 'public'),
+    static: path.resolve(__dirname, '/client/public'),
     compress: true,
     port: 3000,
     proxy: {
@@ -41,7 +41,7 @@ const config = {
   },
   plugins: [
     new HtmlWebpackPlugin({
-      template: './src/index.html'
+      template: './client/src/index.html'
     })
   ]
 }
