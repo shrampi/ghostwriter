@@ -44,50 +44,34 @@ TODO:
 
 */
 
-
-    
-
-
 const App = () => {
-  const [welcomeVisible, setWelcomeVisible] = useState(false);
-  const [notification, setNotification] = useState('');
-
+  const [welcomeVisible] = useState(false);
+  const [notification] = useState('');
   const [sources, setSources] = useState({
     current: {},
     server: [],
     client: []
   });
-
   const [composition, setComposition] = useState('');
   const [userInput, setUserInput] = useState('');
-
   const [suggestion, setSuggestion] = useState('');
   const [suggestionRequestTimeout, setSuggestionRequestTimeout] = useState(null);
-  
   const [options, setOptions] = useState({
     suggestionAccuracy: 3, // Articulate, intelligible, experimental, inebriated
     numSuggestedWords: 1, 
     showSuggestionPreview: true
   });
-
   const [showSearch, setShowSearch] = useState(false);
 
-  const initializeSourcesHook = () => {
-    console.log('Initializing sources...');
+  const initializeSources = () => {
     sourcesService.getSources().then((serverSources) => {
-        console.log('Sources found: ', serverSources.map((s) => s.title));
-
-        let defaultSource = serverSources.find((source) => {
+        let current = serverSources.find((source) => {
           return (source.title === 'Complete Works' && source.author === 'William Shakespeare');
         });
-
-        if (!defaultSource) {
-          console.log('Complete Works of Shakespeare not found as default source.');
-          defaultSource = serverSources[0];
-          return;
+        if (!current) {
+          current = serverSources[0];
         }
-
-        const updatedSources = {...sources, server: serverSources, current: defaultSource};
+        const updatedSources = {...sources, server: serverSources, current};
         setSources(updatedSources);
       })
       .catch((error) => {
@@ -95,11 +79,10 @@ const App = () => {
       });
   };
 
-  useEffect(initializeSourcesHook, []);
+  useEffect(initializeSources, []);
 
   const updateSuggestionFromServer = () => {
     const tokens = parseStringIntoTokens(composition + ' ' + userInput);
-    // Only allow server requests once server sources have been initialized.
     if (sources.server.length) {
       suggestionService.retrieveSuggestion(tokens, sources.current, options.suggestionAccuracy, options.numSuggestedWords)
         .then(suggestion => {
